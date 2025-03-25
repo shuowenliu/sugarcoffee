@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咖啡棠的愛心種植紀錄</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            color: #fff;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 90%;
+            margin: auto;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #27ae60;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #2ecc71;
+        }
+        .selected {
+            background: red !important;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🌸 咖啡棠的愛心種植紀錄 🌸</h2>
+        <div class="button-group">
+            <button onclick="clearAll()" style="background: #e74c3c;">清除全部</button>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="logAction(this, '下種子')">下種子</button>
+        </div>
+        <h3>第一階段</h3>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 1')">澆水 1</button>
+            <button onclick="logAction(this, '除塵 1')">除塵 1</button>
+        </div>
+        <h3>第二階段</h3>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 1')">澆水 1</button>
+            <button onclick="logAction(this, '除塵 1')">除塵 1</button>
+        </div>
+        <div class="drop-group" style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 15px;">
+            <span>掉落物品：</span>
+            <button onclick="toggleYesNo(this, 'yes')">是</button>
+            <button onclick="toggleYesNo(this, 'no')">否</button>
+        </div>
+        <h3>第三階段</h3>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 1')">澆水 1</button>
+            <button onclick="logAction(this, '除塵 1')">除塵 1</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 2')">澆水 2</button>
+            <button onclick="logAction(this, '除塵 2')">除塵 2</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 3')">澆水 3</button>
+            <button onclick="logAction(this, '除塵 3')">除塵 3</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 4')">澆水 4</button>
+            <button onclick="logAction(this, '除塵 4')">除塵 4</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 5')">澆水 5</button>
+            <button onclick="logAction(this, '除塵 5')" style="margin-bottom: 15px;">除塵 5</button>
+        </div>
+        <div class="drop-group" style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <span>掉落物品：</span>
+            <button onclick="toggleYesNo(this, 'yes')">是</button>
+            <button onclick="toggleYesNo(this, 'no')">否</button>
+        </div>
+        <h3>第四階段</h3>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 1')">澆水 1</button>
+            <button onclick="logAction(this, '除塵 1')">除塵 1</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 2')">澆水 2</button>
+            <button onclick="logAction(this, '除塵 2')">除塵 2</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 3')">澆水 3</button>
+            <button onclick="logAction(this, '除塵 3')">除塵 3</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 4')">澆水 4</button>
+            <button onclick="logAction(this, '除塵 4')">除塵 4</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 5')">澆水 5</button>
+            <button onclick="logAction(this, '除塵 5')">除塵 5</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 6')">澆水 6</button>
+            <button onclick="logAction(this, '除塵 6')">除塵 6</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 7')">澆水 7</button>
+            <button onclick="logAction(this, '除塵 7')">除塵 7</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 8')">澆水 8</button>
+            <button onclick="logAction(this, '除塵 8')">除塵 8</button>
+        </div>
+        <div class="button-group">
+            <button onclick="logAction(this, '澆水 9')">澆水 9</button>
+            <button onclick="logAction(this, '除塵 9')" style="margin-bottom: 15px;">除塵 9</button>
+        </div>
+        <div class="drop-group" style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <span>掉落物品：</span>
+            <button onclick="toggleYesNo(this, 'yes')">是</button>
+            <button onclick="toggleYesNo(this, 'no')">否</button>
+        </div>
+    </div>
+    <script>
+        function logAction(button, action) {
+            let timestamp = new Date().toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+            button.textContent = `${action} (${timestamp})`;
+            button.setAttribute('data-original-text', action);
+        }
+        
+        function clearAll() {
+            document.querySelectorAll('.button-group button').forEach(button => {
+                if (button.hasAttribute('data-original-text')) {
+                    button.textContent = button.getAttribute('data-original-text');
+                }
+            });
+        }
+        function toggleYesNo(button, value) {
+        let buttons = button.parentElement.querySelectorAll('button');
+        buttons.forEach(btn => btn.classList.remove('selected'));
+        button.classList.add('selected');
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首頁</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            color: #fff;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        button {
+            padding: 12px 20px;
+            width: 100%;
+            border: none;
+            border-radius: 8px;
+            background: #27ae60;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #2ecc71;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📌 首頁</h2>
+        <button onclick="location.href='tlmusic.html'">TL歌曲</button>
+        <button onclick="location.href='gglmusic.html'">GGL歌曲</button>
+        <button onclick="location.href='瑜榆.html'">瑜榆的愛心農場</button>
+        <button onclick="location.href='咖啡棠.html'">咖啡棠的愛心農場</button>
+    </div>
+</body>
+</html>
