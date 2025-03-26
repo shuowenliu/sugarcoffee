@@ -21,13 +21,6 @@
             box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
         }
-        .input-group, .search-group, .bpm-group {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
         input, select, button {
             flex: 1;
             padding: 10px;
@@ -65,24 +58,6 @@
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.05);
         }
-        h3 {
-            color: #ffcc00;
-        }
-        .bpm-group button {
-            font-family: 'Comic Sans MS', cursive, sans-serif;
-            font-size: 18px;
-            font-weight: bold;
-            background: #ffcc00;
-            color: #222;
-            border-radius: 10px;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .bpm-group button:hover {
-            background: #ffaa00;
-        }
     </style>
 </head>
 <body>
@@ -112,45 +87,22 @@
         </div>
         <button onclick="saveData()">💾 儲存</button>
         <button onclick="displayAllData()">📜 顯示所有歌曲</button>
-        <h3>搜尋條件</h3>
-        <div class="bpm-group">
-            <button onclick="searchByBpm('90')">90↓</button>
-            <button onclick="searchByBpm('90-99')">90-99</button>
-            <button onclick="searchByBpm('100-109')">100-109</button>
-            <button onclick="searchByBpm('110-119')">110-119</button>
-            <button onclick="searchByBpm('120-129')">120-129</button>
-            <button onclick="searchByBpm('130-139')">130-139</button>
-            <button onclick="searchByBpm('140-149')">140-149</button>
-            <button onclick="searchByBpm('150-159')">150-159</button>
-            <button onclick="searchByBpm('160-169')">160-169</button>
-            <button onclick="searchByBpm('170-179')">170-179</button>
-            <button onclick="searchByBpm('180-189')">180-189</button>
-            <button onclick="searchByBpm('190')">190↑</button>
-        </div>
-        <div class="search-group">
-            <select id="searchLanguage" onchange="searchData()">
-                <option value="">所有語言</option>
-                <option value="國語">國語</option>
-                <option value="台語">台語</option>
-                <option value="粵語">粵語</option>
-                <option value="英文">英文</option>
-                <option value="越南">越南</option>
-                <option value="韓文">韓文</option>
-                <option value="其他">其他</option>
-            </select>
-            <select id="searchCategory" onchange="searchData()">
-                <option value="">所有分類</option>
-                <option value="抒情">抒情</option>
-                <option value="悲傷">悲傷</option>
-                <option value="DJ">DJ</option>
-                <option value="嗨歌">嗨歌</option>
-                <option value="怪歌">怪歌</option>
-            </select>
-        </div>
+        <h3>📊 BPM 範圍</h3>
+        <button onclick="searchByBpm(0, 89)">90以下</button>
+        <button onclick="searchByBpm(90, 99)">90-99</button>
+        <button onclick="searchByBpm(100, 109)">100-109</button>
+        <button onclick="searchByBpm(110, 119)">110-119</button>
+        <button onclick="searchByBpm(120, 129)">120-129</button>
+        <button onclick="searchByBpm(130, 139)">130-139</button>
+        <button onclick="searchByBpm(140, 149)">140-149</button>
+        <button onclick="searchByBpm(150, 159)">150-159</button>
+        <button onclick="searchByBpm(160, 169)">160-169</button>
+        <button onclick="searchByBpm(170, 179)">170-179</button>
+        <button onclick="searchByBpm(180, 189)">180-189</button>
+        <button onclick="searchByBpm(190, Infinity)">190以上</button>
         <ul id="dataList"></ul>
     </div>
     <script>
-        let songData = [];
         function saveData() {
             let songName = document.getElementById('songName').value.trim();
             let bpm = document.getElementById('bpm').value;
@@ -161,80 +113,57 @@
                 alert('請完整輸入所有資訊');
                 return;
             }
+
+            let songData = JSON.parse(localStorage.getItem('songData')) || [];
             songData.push({ songName, bpm, language, category });
+            localStorage.setItem('songData', JSON.stringify(songData));
+
             alert(`歌曲「${songName}」已儲存！`);
-            document.getElementById('songName').value = '';
-            document.getElementById('bpm').value = '';
-            document.getElementById('language').value = '';
-            document.getElementById('category').value = '';
+            displayAllData();
         }
+
         function displayAllData() {
             let dataList = document.getElementById('dataList');
             dataList.innerHTML = '';
+            
+            let songData = JSON.parse(localStorage.getItem('songData')) || [];
+
             if (songData.length === 0) {
                 dataList.innerHTML = '<li>目前沒有儲存的歌曲</li>';
                 return;
             }
+
             songData.forEach(song => {
                 let li = document.createElement('li');
                 li.textContent = `🎵 ${song.songName} | BPM: ${song.bpm} | 語言: ${song.language} | 類型: ${song.category}`;
                 dataList.appendChild(li);
             });
         }
-        function searchData() {
-        let searchLanguage = document.getElementById('searchLanguage').value;
-        let searchCategory = document.getElementById('searchCategory').value;
-        let dataList = document.getElementById('dataList');
-        dataList.innerHTML = '';
 
-        let filteredData = songData.filter(song => 
-            (searchLanguage === '' || song.language === searchLanguage) &&
-            (searchCategory === '' || song.category === searchCategory)
-        );
-
-        if (filteredData.length === 0) {
-            dataList.innerHTML = '<li>沒有符合條件的歌曲</li>';
-            return;
+        function searchByBpm(min, max) {
+            let dataList = document.getElementById('dataList');
+            dataList.innerHTML = '';
+            let songData = JSON.parse(localStorage.getItem('songData')) || [];
+            let filteredData = songData.filter(song => {
+                let bpm = parseInt(song.bpm);
+                return bpm >= min && bpm <= max;
+            });
+            
+            if (filteredData.length === 0) {
+                dataList.innerHTML = '<li>沒有符合條件的歌曲</li>';
+                return;
+            }
+            
+            filteredData.forEach(song => {
+                let li = document.createElement('li');
+                li.textContent = `🎵 ${song.songName} | BPM: ${song.bpm} | 語言: ${song.language} | 類型: ${song.category}`;
+                dataList.appendChild(li);
+            });
         }
-
-        filteredData.forEach(song => {
-            let li = document.createElement('li');
-            li.textContent = `🎵 ${song.songName} | BPM: ${song.bpm} | 語言: ${song.language} | 類型: ${song.category}`;
-            dataList.appendChild(li);
-        });
-    }
-    function searchByBpm(range) {
-        let dataList = document.getElementById('dataList');
-        dataList.innerHTML = '';
-
-        let filteredData = songData.filter(song => {
-            let bpm = parseInt(song.bpm);
-            if (range === '90') return bpm < 90;
-            if (range === '90-99') return bpm >= 90 && bpm <= 99;
-            if (range === '100-109') return bpm >= 100 && bpm <= 109;
-            if (range === '110-119') return bpm >= 110 && bpm <= 119;
-            if (range === '120-129') return bpm >= 120 && bpm <= 129;
-            if (range === '130-139') return bpm >= 130 && bpm <= 139;
-            if (range === '140-149') return bpm >= 140 && bpm <= 149;
-            if (range === '150-159') return bpm >= 150 && bpm <= 159;
-            if (range === '160-169') return bpm >= 160 && bpm <= 169;
-            if (range === '170-179') return bpm >= 170 && bpm <= 179;
-            if (range === '180-189') return bpm >= 180 && bpm <= 189;
-            if (range === '190') return bpm >= 190;
-            return false;
-        });
-
-        if (filteredData.length === 0) {
-            dataList.innerHTML = '<li>沒有符合條件的歌曲</li>';
-            return;
-        }
-
-        filteredData.forEach(song => {
-            let li = document.createElement('li');
-            li.textContent = `🎵 ${song.songName} | BPM: ${song.bpm} | 語言: ${song.language} | 類型: ${song.category}`;
-            dataList.appendChild(li);
-        });
-    }
-</script>
+        
+        window.onload = function() {
+            displayAllData();
+        };
+    </script>
 </body>
 </html>
