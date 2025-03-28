@@ -13,16 +13,20 @@
             text-align: center;
         }
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: auto;
             background: rgba(0, 0, 0, 0.8);
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+        }
+        .input-group, .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
         }
         input, select, button {
-            flex: 1;
             padding: 10px;
             border: none;
             border-radius: 8px;
@@ -31,38 +35,36 @@
         }
         button {
             background: #444;
-            color: #fff;
             cursor: pointer;
             font-weight: bold;
-            border: 1px solid #666;
-            transition: 0.3s;
         }
         button:hover {
             background: #666;
-            border-color: #888;
         }
         ul {
             list-style: none;
             padding: 0;
-            margin-top: 15px;
         }
         li {
             padding: 12px;
             background: rgba(255, 255, 255, 0.1);
             margin: 6px 0;
             border-radius: 12px;
-            box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2);
-            transition: transform 0.2s;
-        }
-        li:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.05);
+            display: flex;
+            justify-content: center; /* 整行置中 */
+            align-items: center;
+            gap: 20px; /* 元素之間的間距 */
+           }
+        .bpm-group {
+            display: grid;
+            grid-template-columns: 1fr repeat(4, 1fr) 1fr;
+            gap: 10px;
         }
     </style>
 </head>
-<body>
+<body onload="loadData()">
     <div class="container">
-        <h2>🎵 歌曲管理系統 🎶</h2>
+        <h2>🎵 TL 歌曲管理系統 🎶</h2>
         <div class="input-group">
             <input type="text" id="songName" placeholder="輸入曲名...">
             <input type="number" id="bpm" placeholder="輸入 BPM...">
@@ -72,98 +74,111 @@
                 <option value="台語">台語</option>
                 <option value="粵語">粵語</option>
                 <option value="英文">英文</option>
-                <option value="越南">越南</option>
-                <option value="韓文">韓文</option>
-                <option value="其他">其他</option>
+                <option value="國語">韓國</option>
+                <option value="台語">越南</option>
+                <option value="粵語">日語</option>
+                <option value="英文">其他</option>
             </select>
             <select id="category">
                 <option value="">選擇類型</option>
                 <option value="抒情">抒情</option>
                 <option value="悲傷">悲傷</option>
                 <option value="DJ">DJ</option>
-                <option value="嗨歌">嗨歌</option>
-                <option value="怪歌">怪歌</option>
+                <option value="舞曲">嗨歌</option>
+                <option value="搖滾">怪歌</option>
+                <option value="爵士">甜蜜</option>
             </select>
         </div>
+	<br>
         <button onclick="saveData()">💾 儲存</button>
-        <button onclick="displayAllData()">📜 顯示所有歌曲</button>
-        <h3>📊 BPM 範圍</h3>
-        <button onclick="searchByBpm(0, 89)">90以下</button>
-        <button onclick="searchByBpm(90, 99)">90-99</button>
-        <button onclick="searchByBpm(100, 109)">100-109</button>
-        <button onclick="searchByBpm(110, 119)">110-119</button>
-        <button onclick="searchByBpm(120, 129)">120-129</button>
-        <button onclick="searchByBpm(130, 139)">130-139</button>
-        <button onclick="searchByBpm(140, 149)">140-149</button>
-        <button onclick="searchByBpm(150, 159)">150-159</button>
-        <button onclick="searchByBpm(160, 169)">160-169</button>
-        <button onclick="searchByBpm(170, 179)">170-179</button>
-        <button onclick="searchByBpm(180, 189)">180-189</button>
-        <button onclick="searchByBpm(190, Infinity)">190以上</button>
+        <button onclick="loadData()">📜 顯示所有歌曲</button>
+	<br>
+	<br>
+        <div class="bpm-group">
+            <button onclick="searchByFilters(0, 89)">90以下</button>
+            <button onclick="searchByFilters(90, 99)">90-99</button>
+            <button onclick="searchByFilters(100, 109)">100-109</button>
+            <button onclick="searchByFilters(110, 119)">110-119</button>
+            <button onclick="searchByFilters(120, 129)">120-129</button>
+            <button onclick="searchByFilters(130, 139)">130-139</button>
+            <button onclick="searchByFilters(140, 149)">140-149</button>
+            <button onclick="searchByFilters(150, 159)">150-159</button>
+            <button onclick="searchByFilters(160, 169)">160-169</button>
+            <button onclick="searchByFilters(170, 179)">170-179</button>
+            <button onclick="searchByFilters(180, 189)">180-189</button>
+            <button onclick="searchByFilters(190, Infinity)">190以上</button>
+        </div>
         <ul id="dataList"></ul>
     </div>
     <script>
         function saveData() {
-            let songName = document.getElementById('songName').value.trim();
-            let bpm = document.getElementById('bpm').value;
-            let language = document.getElementById('language').value;
-            let category = document.getElementById('category').value;
+            let songName = document.getElementById("songName").value;
+            let bpm = document.getElementById("bpm").value;
+            let language = document.getElementById("language").value;
+            let category = document.getElementById("category").value;
 
             if (!songName || !bpm || !language || !category) {
-                alert('請完整輸入所有資訊');
+                alert("請填寫所有欄位");
                 return;
             }
 
-            let songData = JSON.parse(localStorage.getItem('songData')) || [];
-            songData.push({ songName, bpm, language, category });
-            localStorage.setItem('songData', JSON.stringify(songData));
+            let songs = JSON.parse(localStorage.getItem("songs")) || [];
+            let exists = songs.some(song => song.name === songName && song.bpm === bpm);
+            if (exists) {
+                alert("歌曲已經存在");
+                return;
+            }
 
-            alert(`歌曲「${songName}」已儲存！`);
-            displayAllData();
+            songs.push({ name: songName, bpm: bpm, language: language, category: category });
+            localStorage.setItem("songs", JSON.stringify(songs));
+            loadData();
         }
 
-        function displayAllData() {
-            let dataList = document.getElementById('dataList');
-            dataList.innerHTML = '';
-            
-            let songData = JSON.parse(localStorage.getItem('songData')) || [];
-
-            if (songData.length === 0) {
-                dataList.innerHTML = '<li>目前沒有儲存的歌曲</li>';
-                return;
-            }
-
-            songData.forEach(song => {
-                let li = document.createElement('li');
-                li.textContent = `🎵 ${song.songName} | BPM: ${song.bpm} | 語言: ${song.language} | 類型: ${song.category}`;
+        function loadData() {
+            let songs = JSON.parse(localStorage.getItem("songs")) || [];
+            let dataList = document.getElementById("dataList");
+            dataList.innerHTML = "";
+            songs.forEach(song => {
+                let li = document.createElement("li");
+                li.innerHTML = `${song.name} (${song.bpm} BPM) - ${song.language} | ${song.category} 
+                    <button onclick="copySong('${song.name}')">📋</button>
+                    <button onclick="deleteSong('${song.name}', '${song.bpm}')">🗑️</button>`;
                 dataList.appendChild(li);
             });
         }
 
-        function searchByBpm(min, max) {
-            let dataList = document.getElementById('dataList');
-            dataList.innerHTML = '';
-            let songData = JSON.parse(localStorage.getItem('songData')) || [];
-            let filteredData = songData.filter(song => {
-                let bpm = parseInt(song.bpm);
-                return bpm >= min && bpm <= max;
-            });
-            
-            if (filteredData.length === 0) {
-                dataList.innerHTML = '<li>沒有符合條件的歌曲</li>';
-                return;
-            }
-            
-            filteredData.forEach(song => {
-                let li = document.createElement('li');
-                li.textContent = `🎵 ${song.songName} | BPM: ${song.bpm} | 語言: ${song.language} | 類型: ${song.category}`;
+        function searchByFilters(minBpm, maxBpm) {
+            let songs = JSON.parse(localStorage.getItem("songs")) || [];
+            let language = document.getElementById("language").value;
+            let category = document.getElementById("category").value;
+            let filteredSongs = songs.filter(song => 
+                song.bpm >= minBpm && song.bpm <= maxBpm &&
+                (language === "" || song.language === language) &&
+                (category === "" || song.category === category)
+            );
+
+            let dataList = document.getElementById("dataList");
+            dataList.innerHTML = "";
+            filteredSongs.forEach(song => {
+                let li = document.createElement("li");
+                li.innerHTML = `${song.name} (${song.bpm} BPM) - ${song.language} | ${song.category} 
+                    <button onclick="copySong('${song.name}')">📋</button>
+                    <button onclick="deleteSong('${song.name}', '${song.bpm}')">🗑️</button>`;
                 dataList.appendChild(li);
             });
         }
-        
-        window.onload = function() {
-            displayAllData();
-        };
+
+        function copySong(name) {
+            navigator.clipboard.writeText(name);
+            alert("已複製: " + name);
+        }
+
+        function deleteSong(name, bpm) {
+            let songs = JSON.parse(localStorage.getItem("songs")) || [];
+            songs = songs.filter(song => song.name !== name || song.bpm !== bpm);
+            localStorage.setItem("songs", JSON.stringify(songs));
+            loadData();
+        }
     </script>
 </body>
 </html>
