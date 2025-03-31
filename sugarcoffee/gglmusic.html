@@ -51,10 +51,10 @@
             margin: 6px 0;
             border-radius: 12px;
             display: flex;
-            justify-content: center; /* 整行置中 */
+            justify-content: center;
             align-items: center;
-            gap: 20px; /* 元素之間的間距 */
-           }
+            gap: 20px;
+        }
         .bpm-group {
             display: grid;
             grid-template-columns: 1fr repeat(4, 1fr) 1fr;
@@ -62,67 +62,66 @@
         }
     </style>
 </head>
-<body onload="loadData()">
+<body onload="loadGglData()">
     <div class="container">
         <h2>🎵 GGL 歌曲管理系統 🎶</h2>
         <div class="input-group">
-            <input type="text" id="songName" placeholder="輸入曲名...">
-            <input type="number" id="bpm" placeholder="輸入 BPM...">
-            <select id="language">
+            <input type="text" id="gglSongName" placeholder="輸入曲名...">
+            <input type="number" id="gglBpm" placeholder="輸入 BPM...">
+            <select id="gglLanguage">
                 <option value="">選擇語言</option>
                 <option value="國語">國語</option>
                 <option value="台語">台語</option>
                 <option value="粵語">粵語</option>
                 <option value="英文">英文</option>
-                <option value="國語">韓國</option>
-                <option value="台語">越南</option>
-                <option value="粵語">日語</option>
-                <option value="英文">其他</option>
+                <option value="韓國">韓國</option>
+                <option value="越南">越南</option>
+                <option value="日語">日語</option>
+                <option value="其他">其他</option>
             </select>
-            <select id="category">
+            <select id="gglCategory">
                 <option value="">選擇類型</option>
                 <option value="抒情">抒情</option>
                 <option value="悲傷">悲傷</option>
                 <option value="DJ">DJ</option>
-                <option value="舞曲">嗨歌</option>
-                <option value="搖滾">怪歌</option>
-                <option value="爵士">甜蜜</option>
+                <option value="嗨歌">嗨歌</option>
+                <option value="怪歌">怪歌</option>
+                <option value="甜蜜">甜蜜</option>
             </select>
         </div>
-	<br>
-        <button onclick="saveData()">💾 儲存</button>
-        <button onclick="loadData()">📜 顯示所有歌曲</button>
-	<br>
-	<br>
+        <br>
+        <button onclick="saveGglData()">💾 儲存</button>
+        <button onclick="loadGglData()">📜 顯示所有歌曲</button>
+        <br><br>
         <div class="bpm-group">
-            <button onclick="searchByFilters(0, 89)">90以下</button>
-            <button onclick="searchByFilters(90, 99)">90-99</button>
-            <button onclick="searchByFilters(100, 109)">100-109</button>
-            <button onclick="searchByFilters(110, 119)">110-119</button>
-            <button onclick="searchByFilters(120, 129)">120-129</button>
-            <button onclick="searchByFilters(130, 139)">130-139</button>
-            <button onclick="searchByFilters(140, 149)">140-149</button>
-            <button onclick="searchByFilters(150, 159)">150-159</button>
-            <button onclick="searchByFilters(160, 169)">160-169</button>
-            <button onclick="searchByFilters(170, 179)">170-179</button>
-            <button onclick="searchByFilters(180, 189)">180-189</button>
-            <button onclick="searchByFilters(190, Infinity)">190以上</button>
+            <button onclick="searchGglByFilters(0, 89)">90以下</button>
+            <button onclick="searchGglByFilters(90, 99)">90-99</button>
+            <button onclick="searchGglByFilters(100, 109)">100-109</button>
+            <button onclick="searchGglByFilters(110, 119)">110-119</button>
+            <button onclick="searchGglByFilters(120, 129)">120-129</button>
+            <button onclick="searchGglByFilters(130, 139)">130-139</button>
+            <button onclick="searchGglByFilters(140, 149)">140-149</button>
+            <button onclick="searchGglByFilters(150, 159)">150-159</button>
+            <button onclick="searchGglByFilters(160, 169)">160-169</button>
+            <button onclick="searchGglByFilters(170, 179)">170-179</button>
+            <button onclick="searchGglByFilters(180, 189)">180-189</button>
+            <button onclick="searchGglByFilters(190, Infinity)">190以上</button>
         </div>
-        <ul id="dataList"></ul>
+        <ul id="gglDataList"></ul>
     </div>
     <script>
-        function saveData() {
-            let songName = document.getElementById("songName").value;
-            let bpm = document.getElementById("bpm").value;
-            let language = document.getElementById("language").value;
-            let category = document.getElementById("category").value;
+        function saveGglData() {
+            let songName = document.getElementById("gglSongName").value;
+            let bpm = document.getElementById("gglBpm").value;
+            let language = document.getElementById("gglLanguage").value;
+            let category = document.getElementById("gglCategory").value;
 
             if (!songName || !bpm || !language || !category) {
                 alert("請填寫所有欄位");
                 return;
             }
 
-            let songs = JSON.parse(localStorage.getItem("songs")) || [];
+            let songs = JSON.parse(localStorage.getItem("gglSongs")) || [];
             let exists = songs.some(song => song.name === songName && song.bpm === bpm);
             if (exists) {
                 alert("歌曲已經存在");
@@ -130,54 +129,27 @@
             }
 
             songs.push({ name: songName, bpm: bpm, language: language, category: category });
-            localStorage.setItem("songs", JSON.stringify(songs));
-            loadData();
+            localStorage.setItem("gglSongs", JSON.stringify(songs));
+            loadGglData();
         }
 
-        function loadData() {
-            let songs = JSON.parse(localStorage.getItem("songs")) || [];
-            let dataList = document.getElementById("dataList");
+        function loadGglData() {
+            let songs = JSON.parse(localStorage.getItem("gglSongs")) || [];
+            let dataList = document.getElementById("gglDataList");
             dataList.innerHTML = "";
             songs.forEach(song => {
                 let li = document.createElement("li");
                 li.innerHTML = `${song.name} (${song.bpm} BPM) - ${song.language} | ${song.category} 
-                    <button onclick="copySong('${song.name}')">📋</button>
-                    <button onclick="deleteSong('${song.name}', '${song.bpm}')">🗑️</button>`;
+                    <button onclick="deleteGglSong('${song.name}', '${song.bpm}')">🗑️</button>`;
                 dataList.appendChild(li);
             });
         }
 
-        function searchByFilters(minBpm, maxBpm) {
-            let songs = JSON.parse(localStorage.getItem("songs")) || [];
-            let language = document.getElementById("language").value;
-            let category = document.getElementById("category").value;
-            let filteredSongs = songs.filter(song => 
-                song.bpm >= minBpm && song.bpm <= maxBpm &&
-                (language === "" || song.language === language) &&
-                (category === "" || song.category === category)
-            );
-
-            let dataList = document.getElementById("dataList");
-            dataList.innerHTML = "";
-            filteredSongs.forEach(song => {
-                let li = document.createElement("li");
-                li.innerHTML = `${song.name} (${song.bpm} BPM) - ${song.language} | ${song.category} 
-                    <button onclick="copySong('${song.name}')">📋</button>
-                    <button onclick="deleteSong('${song.name}', '${song.bpm}')">🗑️</button>`;
-                dataList.appendChild(li);
-            });
-        }
-
-        function copySong(name) {
-            navigator.clipboard.writeText(name);
-            alert("已複製: " + name);
-        }
-
-        function deleteSong(name, bpm) {
-            let songs = JSON.parse(localStorage.getItem("songs")) || [];
+        function deleteGglSong(name, bpm) {
+            let songs = JSON.parse(localStorage.getItem("gglSongs")) || [];
             songs = songs.filter(song => song.name !== name || song.bpm !== bpm);
-            localStorage.setItem("songs", JSON.stringify(songs));
-            loadData();
+            localStorage.setItem("gglSongs", JSON.stringify(songs));
+            loadGglData();
         }
     </script>
 </body>
