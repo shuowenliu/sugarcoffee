@@ -83,15 +83,15 @@
         }
 
         function saveState(action, timestamp) {
-            let logData = JSON.parse(localStorage.getItem('coffeeTangData')) || { actions: [] };
+            let logData = JSON.parse(localStorage.getItem('treeData')) || { actions: [] };
             logData.actions.push({ action, timestamp });
             logData.lastVisit = timestamp;
-            localStorage.setItem('coffeeTangData', JSON.stringify(logData));
+            localStorage.setItem('treeData', JSON.stringify(logData));
         }
 
         function loadState() {
             createStages();
-            let logData = JSON.parse(localStorage.getItem('coffeeTangData')) || { actions: [] };
+            let logData = JSON.parse(localStorage.getItem('treeData')) || { actions: [] };
             document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
             logData.actions.forEach(entry => {
                 const [type, stage, count] = entry.action.split(' ');
@@ -109,7 +109,7 @@
             document.getElementById('log').innerHTML = '';
             document.getElementById('seedButton').innerHTML = '下種子';
             document.getElementById('status').innerHTML = '紀錄已清除';
-            localStorage.removeItem('coffeeTangData');
+            localStorage.removeItem('treeData');
         }
 
         window.onload = loadState;
