@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>咖啡棠的愛心種植紀錄</title>
+    <title>瑜榆的愛心種植紀錄</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,25 +28,22 @@
         }
         .button-group {
             display: flex;
-            flex-direction: row;
             gap: 10px;
             margin-top: 10px;
-            width: 100%;
         }
         button {
-            padding: 10px 15px;
+            padding: 10px;
             border: none;
             border-radius: 8px;
             background: #27ae60;
             color: #fff;
             font-size: 16px;
             cursor: pointer;
-            transition: 0.3s;
         }
         button:hover {
             background: #2ecc71;
         }
-        .log {
+        .log, .status {
             margin-top: 10px;
             text-align: left;
         }
@@ -55,58 +52,48 @@
 <body>
     <div class="container">
         <h2>🌸 瑜榆的愛心種植紀錄 🌸</h2>
+        <div class="status" id="status"></div>
         <div class="button-group">
-            <button onclick="clearAll()" style="background: #e74c3c;">清除全部</button>
-        </div>
-
-        <div class="button-group">
+            <button onclick="clearAll()">清除全部</button>
             <button onclick="logAction(this, '下種子')" id="seedButton">下種子</button>
         </div>
-
         <div id="stages"></div>
         <div id="log" class="log"></div>
     </div>
-
     <script>
         function createStages() {
-            const stagesContainer = document.getElementById('stages');
-            stagesContainer.innerHTML = '';
+            document.getElementById('stages').innerHTML = '';
             const repeatCounts = [1, 1, 5, 9];
-
             for (let i = 1; i <= 4; i++) {
-                stagesContainer.innerHTML += `<h3>第${i}階段</h3>`;
+                document.getElementById('stages').innerHTML += `<h3>第${i}階段</h3>`;
                 for (let j = 1; j <= repeatCounts[i - 1]; j++) {
-                    stagesContainer.innerHTML += `<div class="button-group">
-                        <button onclick="logAction(this, '澆水 ${i} (${j}/1)')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
-                        <button onclick="logAction(this, '除塵 ${i} (${j}/1)')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
-                    </div>`;
+                    document.getElementById('stages').innerHTML += `
+                        <div class="button-group">
+                            <button onclick="logAction(this, '澆水 ${i} (${j}/1)')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
+                            <button onclick="logAction(this, '除塵 ${i} (${j}/1)')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
+                        </div>`;
                 }
             }
         }
 
         function logAction(button, action) {
-            let timestamp = new Date().toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
-            button.innerHTML = action + "<br>" + timestamp;
-            saveButtonState(action, timestamp);
+            let timestamp = new Date().toLocaleString('zh-TW');
+            button.innerHTML = `${action}<br>${timestamp}`;
+            saveState(action, timestamp);
         }
 
-        function clearAll() {
+        function saveState(action, timestamp) {
+            let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
+            logData.actions.push({ action, timestamp });
+            logData.lastVisit = timestamp;
+            localStorage.setItem('plantingData', JSON.stringify(logData));
+        }
+
+        function loadState() {
             createStages();
-            document.getElementById('log').innerHTML = '';
-            document.getElementById('seedButton').innerHTML = '下種子';
-            localStorage.removeItem('logData');
-        }
-
-        function saveButtonState(action, timestamp) {
-            let logData = JSON.parse(localStorage.getItem('logData')) || [];
-            logData.push({ action, timestamp });
-            localStorage.setItem('logData', JSON.stringify(logData));
-        }
-
-        function loadButtonState() {
-            createStages();
-            let logData = JSON.parse(localStorage.getItem('logData')) || [];
-            logData.forEach(entry => {
+            let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
+            document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
+            logData.actions.forEach(entry => {
                 const [type, stage, count] = entry.action.split(' ');
                 if (type === '下種子') {
                     document.getElementById('seedButton').innerHTML = entry.action + "<br>" + entry.timestamp;
@@ -117,7 +104,15 @@
             });
         }
 
-        window.onload = loadButtonState;
+        function clearAll() {
+            createStages();
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('seedButton').innerHTML = '下種子';
+            document.getElementById('status').innerHTML = '紀錄已清除';
+            localStorage.removeItem('plantingData');
+        }
+
+        window.onload = loadState;
     </script>
 </body>
 </html>
