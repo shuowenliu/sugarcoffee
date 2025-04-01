@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>瑜榆的愛心種植紀錄</title>
+    <title>瑜榆的愛心種植紀錄 - 除錯優化版</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -51,7 +51,7 @@
 </head>
 <body>
     <div class="container">
-        <h2>🌸 瑜榆的愛心種植紀錄 🌸</h2>
+        <h2>🌸 瑜榆的愛心種植紀錄 - 除錯優化版 🌸</h2>
         <div class="status" id="status"></div>
         <div class="button-group">
             <button onclick="clearAll()">清除全部</button>
@@ -83,39 +83,52 @@
         }
 
         function saveState(action, timestamp) {
-            let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
-            let [type, stage = '', count = ''] = action.match(/(\S+) (\d+)?(?: \((\d+)\/1\))?/) || [];
-            logData.actions.push({ type, stage, count, timestamp });
-            logData.lastVisit = timestamp;
-            localStorage.setItem('plantingData', JSON.stringify(logData));
+            try {
+                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
+                let [type, stage = '', count = ''] = action.match(/(\S+) (\d+)?(?: \((\d+)\/1\))?/) || [];
+                logData.actions = logData.actions.filter(a => !(a.type === type && a.stage === stage && a.count === count));
+                logData.actions.push({ type, stage, count, timestamp });
+                logData.lastVisit = timestamp;
+                localStorage.setItem('plantingData', JSON.stringify(logData));
+                console.log('✅ 儲存成功:', logData);
+            } catch (error) {
+                console.error('❌ 儲存錯誤:', error);
+            }
         }
 
         function loadState() {
-            createStages();
-            let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
-            document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
-            logData.actions.forEach(entry => {
-                const { type, stage, count, timestamp } = entry;
-                if (type === '下種子') {
-                    document.getElementById('seedButton').innerHTML = `${type}<br>${timestamp}`;
-                } else {
-                    const buttonId = type === '澆水' ? `water_${stage}_${count}` : `dust_${stage}_${count}`;
-                    const button = document.getElementById(buttonId);
-                    if (button) button.innerHTML = `${type} ${stage} (${count}/1)<br>${timestamp}`;
-                }
-            });
+            try {
+                createStages();
+                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
+                document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
+                logData.actions.forEach(entry => {
+                    const { type, stage, count, timestamp } = entry;
+                    if (type === '下種子') {
+                        document.getElementById('seedButton').innerHTML = `${type}<br>${timestamp}`;
+                    } else {
+                        const buttonId = type === '澆水' ? `water_${stage}_${count}` : `dust_${stage}_${count}`;
+                        const button = document.getElementById(buttonId);
+                        if (button) button.innerHTML = `${type} ${stage} (${count}/1)<br>${timestamp}`;
+                    }
+                });
+                console.log('✅ 載入成功:', logData);
+            } catch (error) {
+                console.error('❌ 載入錯誤:', error);
+            }
         }
 
         function clearAll() {
-            createStages();
-            document.getElementById('log').innerHTML = '';
-            document.getElementById('seedButton').innerHTML = '下種子';
-            document.getElementById('status').innerHTML = '紀錄已清除';
-            localStorage.removeItem('plantingData');
-            saveState('清除紀錄', new Date().toLocaleString('zh-TW'));
+            if (confirm('確定要清除所有紀錄嗎？')) {
+                createStages();
+                document.getElementById('log').innerHTML = '';
+                document.getElementById('seedButton').innerHTML = '下種子';
+                document.getElementById('status').innerHTML = '紀錄已清除';
+                localStorage.removeItem('plantingData');
+                saveState('清除紀錄', new Date().toLocaleString('zh-TW'));
+            }
         }
 
-        window.onload = loadState;
+        document.addEventListener('DOMContentLoaded', loadState);
     </script>
 </body>
 </html>
