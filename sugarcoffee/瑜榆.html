@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>瑜榆的愛心種植紀錄 - 除錯優化版</title>
+    <title>瑜榆的愛心種植紀錄 - 強化版</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -51,7 +51,7 @@
 </head>
 <body>
     <div class="container">
-        <h2>🌸 瑜榆的愛心種植紀錄 - 除錯優化版 🌸</h2>
+        <h2>🌸 瑜榆的愛心種植紀錄 - 強化版 🌸</h2>
         <div class="status" id="status"></div>
         <div class="button-group">
             <button onclick="clearAll()">清除全部</button>
@@ -84,6 +84,7 @@
 
         function saveState(action, timestamp) {
             try {
+                if (!localStorage) throw new Error('⚠️ 瀏覽器不支援 localStorage');
                 let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
                 let [type, stage = '', count = ''] = action.match(/(\S+) (\d+)?(?: \((\d+)\/1\))?/) || [];
                 logData.actions = logData.actions.filter(a => !(a.type === type && a.stage === stage && a.count === count));
@@ -98,6 +99,7 @@
 
         function loadState() {
             try {
+                if (!localStorage) throw new Error('⚠️ 瀏覽器不支援 localStorage');
                 createStages();
                 let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
                 document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
