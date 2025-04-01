@@ -84,7 +84,8 @@
 
         function saveState(action, timestamp) {
             let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
-            logData.actions.push({ action, timestamp });
+            let [type, stage = '', count = ''] = action.match(/(\S+) (\d+)?(?: \((\d+)\/1\))?/) || [];
+            logData.actions.push({ type, stage, count, timestamp });
             logData.lastVisit = timestamp;
             localStorage.setItem('plantingData', JSON.stringify(logData));
         }
@@ -94,12 +95,13 @@
             let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
             document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
             logData.actions.forEach(entry => {
-                const [type, stage, count] = entry.action.split(' ');
+                const { type, stage, count, timestamp } = entry;
                 if (type === '下種子') {
-                    document.getElementById('seedButton').innerHTML = entry.action + "<br>" + entry.timestamp;
+                    document.getElementById('seedButton').innerHTML = `${type}<br>${timestamp}`;
                 } else {
                     const buttonId = type === '澆水' ? `water_${stage}_${count}` : `dust_${stage}_${count}`;
-                    document.getElementById(buttonId).innerHTML = entry.action + "<br>" + entry.timestamp;
+                    const button = document.getElementById(buttonId);
+                    if (button) button.innerHTML = `${type} ${stage} (${count}/1)<br>${timestamp}`;
                 }
             });
         }
@@ -110,6 +112,7 @@
             document.getElementById('seedButton').innerHTML = '下種子';
             document.getElementById('status').innerHTML = '紀錄已清除';
             localStorage.removeItem('plantingData');
+            saveState('清除紀錄', new Date().toLocaleString('zh-TW'));
         }
 
         window.onload = loadState;
