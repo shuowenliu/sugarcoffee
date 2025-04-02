@@ -55,7 +55,7 @@
         <div class="status" id="status"></div>
         <div class="button-group">
             <button onclick="clearAll()">清除全部</button>
-            <button onclick="logAction(this, '下種子')" id="seedButton">下種子</button>
+            <button onclick="logAction('seedButton')" id="seedButton">下種子</button>
         </div>
         <div id="stages"></div>
         <div id="log" class="log"></div>
@@ -69,26 +69,24 @@
                 for (let j = 1; j <= repeatCounts[i - 1]; j++) {
                     document.getElementById('stages').innerHTML += `
                         <div class="button-group">
-                            <button onclick="logAction(this, '澆水 ${i} (${j}/1)')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
-                            <button onclick="logAction(this, '除塵 ${i} (${j}/1)')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
+                            <button onclick="logAction('water_${i}_${j}')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
+                            <button onclick="logAction('dust_${i}_${j}')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
                         </div>`;
                 }
             }
         }
 
-        function logAction(button, action) {
+        function logAction(buttonId) {
             let timestamp = new Date().toLocaleString('zh-TW');
-            button.innerHTML = `${action}<br>${timestamp}`;
-            saveState(action, timestamp);
+            document.getElementById(buttonId).innerHTML = document.getElementById(buttonId).innerHTML.split('<br>')[0] + `<br>${timestamp}`;
+            saveState(buttonId, timestamp);
         }
 
-        function saveState(action, timestamp) {
+        function saveState(buttonId, timestamp) {
             try {
                 if (!localStorage) throw new Error('⚠️ 瀏覽器不支援 localStorage');
-                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
-                let [type, stage = '', count = ''] = action.match(/(\S+) (\d+)?(?: \((\d+)\/1\))?/) || [];
-                logData.actions = logData.actions.filter(a => !(a.type === type && a.stage === stage && a.count === count));
-                logData.actions.push({ type, stage, count, timestamp });
+                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: {} };
+                logData.actions[buttonId] = timestamp;
                 logData.lastVisit = timestamp;
                 localStorage.setItem('plantingData', JSON.stringify(logData));
                 console.log('✅ 儲存成功:', logData);
@@ -101,18 +99,13 @@
             try {
                 if (!localStorage) throw new Error('⚠️ 瀏覽器不支援 localStorage');
                 createStages();
-                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: [] };
+                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: {} };
                 document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
-                logData.actions.forEach(entry => {
-                    const { type, stage, count, timestamp } = entry;
-                    if (type === '下種子') {
-                        document.getElementById('seedButton').innerHTML = `${type}<br>${timestamp}`;
-                    } else {
-                        const buttonId = type === '澆水' ? `water_${stage}_${count}` : `dust_${stage}_${count}`;
-                        const button = document.getElementById(buttonId);
-                        if (button) button.innerHTML = `${type} ${stage} (${count}/1)<br>${timestamp}`;
-                    }
-                });
+                for (const buttonId in logData.actions) {
+                    const timestamp = logData.actions[buttonId];
+                    const button = document.getElementById(buttonId);
+                    if (button) button.innerHTML = button.innerHTML.split('<br>')[0] + `<br>${timestamp}`;
+                }
                 console.log('✅ 載入成功:', logData);
             } catch (error) {
                 console.error('❌ 載入錯誤:', error);
