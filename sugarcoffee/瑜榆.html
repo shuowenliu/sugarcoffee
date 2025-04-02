@@ -30,6 +30,7 @@
             display: flex;
             gap: 10px;
             margin-top: 10px;
+            flex-direction: column;
         }
         button {
             padding: 10px;
@@ -43,9 +44,9 @@
         button:hover {
             background: #2ecc71;
         }
-        .log, .status {
-            margin-top: 10px;
-            text-align: left;
+        .timestamp {
+            font-size: 14px;
+            color: #a0a0a0;
         }
     </style>
 </head>
@@ -56,9 +57,9 @@
         <div class="button-group">
             <button onclick="clearAll()">清除全部</button>
             <button onclick="logAction('seedButton')" id="seedButton">下種子</button>
+            <div id="seedButton_time" class="timestamp"></div>
         </div>
         <div id="stages"></div>
-        <div id="log" class="log"></div>
     </div>
     <script>
         function createStages() {
@@ -70,7 +71,9 @@
                     document.getElementById('stages').innerHTML += `
                         <div class="button-group">
                             <button onclick="logAction('water_${i}_${j}')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
+                            <div id="water_${i}_${j}_time" class="timestamp"></div>
                             <button onclick="logAction('dust_${i}_${j}')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
+                            <div id="dust_${i}_${j}_time" class="timestamp"></div>
                         </div>`;
                 }
             }
@@ -78,7 +81,7 @@
 
         function logAction(buttonId) {
             let timestamp = new Date().toLocaleString('zh-TW');
-            document.getElementById(buttonId).innerHTML = document.getElementById(buttonId).innerHTML.split('<br>')[0] + `<br>${timestamp}`;
+            document.getElementById(buttonId + '_time').innerHTML = `時間：${timestamp}`;
             saveState(buttonId, timestamp);
         }
 
@@ -104,8 +107,8 @@
                 }
                 document.getElementById('status').innerHTML = `上次登入時間：${logData.lastVisit}`;
                 for (const buttonId in logData.actions) {
-                    const button = document.getElementById(buttonId);
-                    if (button) button.innerHTML = button.innerHTML.split('<br>')[0] + `<br>${logData.actions[buttonId]}`;
+                    const timestampElement = document.getElementById(buttonId + '_time');
+                    if (timestampElement) timestampElement.innerHTML = `時間：${logData.actions[buttonId]}`;
                 }
                 console.log('✅ 載入成功:', logData);
             } catch (error) {
@@ -116,8 +119,6 @@
         function clearAll() {
             if (confirm('確定要清除所有紀錄嗎？')) {
                 createStages();
-                document.getElementById('log').innerHTML = '';
-                document.getElementById('seedButton').innerHTML = '下種子';
                 document.getElementById('status').innerHTML = '紀錄已清除';
                 localStorage.removeItem('plantingData');
             }
