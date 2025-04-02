@@ -84,10 +84,9 @@
 
         function saveState(buttonId, timestamp) {
             try {
-                if (!localStorage) throw new Error('⚠️ 瀏覽器不支援 localStorage');
                 let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: {} };
                 logData.actions[buttonId] = timestamp;
-                logData.lastVisit = timestamp;
+                logData.lastVisit = new Date().toLocaleString('zh-TW');
                 localStorage.setItem('plantingData', JSON.stringify(logData));
                 console.log('✅ 儲存成功:', logData);
             } catch (error) {
@@ -97,14 +96,16 @@
 
         function loadState() {
             try {
-                if (!localStorage) throw new Error('⚠️ 瀏覽器不支援 localStorage');
                 createStages();
-                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: {} };
-                document.getElementById('status').innerHTML = logData.lastVisit ? `上次登入時間：${logData.lastVisit}` : "首次登入，歡迎!";
+                let logData = JSON.parse(localStorage.getItem('plantingData'));
+                if (!logData) {
+                    document.getElementById('status').innerHTML = '首次登入，歡迎!';
+                    return;
+                }
+                document.getElementById('status').innerHTML = `上次登入時間：${logData.lastVisit}`;
                 for (const buttonId in logData.actions) {
-                    const timestamp = logData.actions[buttonId];
                     const button = document.getElementById(buttonId);
-                    if (button) button.innerHTML = button.innerHTML.split('<br>')[0] + `<br>${timestamp}`;
+                    if (button) button.innerHTML = button.innerHTML.split('<br>')[0] + `<br>${logData.actions[buttonId]}`;
                 }
                 console.log('✅ 載入成功:', logData);
             } catch (error) {
@@ -119,7 +120,6 @@
                 document.getElementById('seedButton').innerHTML = '下種子';
                 document.getElementById('status').innerHTML = '紀錄已清除';
                 localStorage.removeItem('plantingData');
-                saveState('清除紀錄', new Date().toLocaleString('zh-TW'));
             }
         }
 
