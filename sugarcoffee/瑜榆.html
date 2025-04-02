@@ -56,7 +56,7 @@
         <div class="status" id="status"></div>
         <div class="button-group">
             <button onclick="clearAll()">清除全部</button>
-            <button onclick="logAction('seedButton')" id="seedButton">下種子</button>
+            <button onclick="recordAction('seedButton')" id="seedButton">下種子</button>
             <div id="seedButton_time" class="timestamp"></div>
         </div>
         <div id="stages"></div>
@@ -70,28 +70,28 @@
                 for (let j = 1; j <= repeatCounts[i - 1]; j++) {
                     document.getElementById('stages').innerHTML += `
                         <div class="button-group">
-                            <button onclick="logAction('water_${i}_${j}')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
+                            <button onclick="recordAction('water_${i}_${j}')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
                             <div id="water_${i}_${j}_time" class="timestamp"></div>
-                            <button onclick="logAction('dust_${i}_${j}')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
+                            <button onclick="recordAction('dust_${i}_${j}')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
                             <div id="dust_${i}_${j}_time" class="timestamp"></div>
                         </div>`;
                 }
             }
         }
 
-        function logAction(buttonId) {
+        function recordAction(buttonId) {
             let timestamp = new Date().toLocaleString('zh-TW');
             document.getElementById(buttonId + '_time').innerHTML = `時間：${timestamp}`;
-            saveState(buttonId, timestamp);
+            storeState(buttonId, timestamp);
         }
 
-        function saveState(buttonId, timestamp) {
+        function storeState(buttonId, timestamp) {
             try {
                 let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: {} };
                 logData.actions[buttonId] = timestamp;
                 logData.lastVisit = new Date().toLocaleString('zh-TW');
                 localStorage.setItem('plantingData', JSON.stringify(logData));
-                console.log('✅ 儲存成功:', logData);
+                console.log('✅ 儲存成功:', JSON.stringify(logData));
             } catch (error) {
                 console.error('❌ 儲存錯誤:', error);
             }
@@ -99,8 +99,8 @@
 
         function loadState() {
             try {
-                createStages();
                 let logData = JSON.parse(localStorage.getItem('plantingData'));
+                createStages();
                 if (!logData) {
                     document.getElementById('status').innerHTML = '首次登入，歡迎!';
                     return;
@@ -110,7 +110,7 @@
                     const timestampElement = document.getElementById(buttonId + '_time');
                     if (timestampElement) timestampElement.innerHTML = `時間：${logData.actions[buttonId]}`;
                 }
-                console.log('✅ 載入成功:', logData);
+                console.log('✅ 載入成功:', JSON.stringify(logData));
             } catch (error) {
                 console.error('❌ 載入錯誤:', error);
             }
@@ -118,9 +118,9 @@
 
         function clearAll() {
             if (confirm('確定要清除所有紀錄嗎？')) {
+                localStorage.removeItem('plantingData');
                 createStages();
                 document.getElementById('status').innerHTML = '紀錄已清除';
-                localStorage.removeItem('plantingData');
             }
         }
 
