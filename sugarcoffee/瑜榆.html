@@ -85,8 +85,11 @@
     .flower.grow {
       transform: scale(1);
     }
-
-    /* 色調 A：瑜榆粉紅 */
+    .message {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #cc0066;
+    }
     .card.yuyu {
       background: #fff0f5;
     }
@@ -96,8 +99,6 @@
     .card.yuyu .progress-bar-inner {
       background: #ff69b4;
     }
-
-    /* 色調 B：咖啡棠藍紫 */
     .card.coffee {
       background: #e6f0ff;
     }
@@ -121,7 +122,9 @@
       <div class="button-group">
         <button onclick="water('yuyu')">💧 澆水</button>
         <button onclick="dust('yuyu')">🧹 除塵</button>
+        <button onclick="downloadLog('yuyu')">⬇️ 下載紀錄</button>
       </div>
+      <p id="message-yuyu" class="message"></p>
       <div class="progress-bar"><div id="progress-yuyu" class="progress-bar-inner"></div></div>
       <div id="flower-yuyu" class="flower"></div>
       <div id="log-yuyu" class="log"></div>
@@ -136,7 +139,9 @@
       <div class="button-group">
         <button onclick="water('coffee')">💧 澆水</button>
         <button onclick="dust('coffee')">🧹 除塵</button>
+        <button onclick="downloadLog('coffee')">⬇️ 下載紀錄</button>
       </div>
+      <p id="message-coffee" class="message"></p>
       <div class="progress-bar"><div id="progress-coffee" class="progress-bar-inner"></div></div>
       <div id="flower-coffee" class="flower"></div>
       <div id="log-coffee" class="log"></div>
@@ -208,6 +213,7 @@
         renderLog(type);
         updateProgress(type);
         updateFlower(type);
+        updateMessage(type);
       }
     }
 
@@ -216,6 +222,7 @@
       renderLog(type);
       updateProgress(type);
       updateFlower(type);
+      updateMessage(type);
     }
 
     function renderLog(type) {
@@ -249,12 +256,48 @@
       }
     }
 
+    function updateMessage(type) {
+      const msgBox = document.getElementById('message-' + type);
+      const phase = getPhase(data[type]);
+      const messages = [
+        "第一階段：開始種下愛心的種子 🌱",
+        "第二階段：持續細心灌溉與照料 💧🧹",
+        "第三階段：努力讓愛心茁壯 🌿",
+        "第四階段：愛心花朵即將綻放 🌸"
+      ];
+      msgBox.textContent = data[type].length > 0 ? messages[phase] : "請點擊『下種子』開始記錄 🌼";
+    }
+
+    function downloadLog(type) {
+      const records = data[type];
+      if (records.length === 0) {
+        alert("尚無紀錄可下載！");
+        return;
+      }
+
+      let text = records.map((r, i) =>
+        `階段 ${i + 1}：\n  種子時間：${r.seedTime}\n  澆水 (${r.waterLogs.length}/${waterLimits[i]}):\n    ${r.waterLogs.map(t => '－ ' + t).join('\n')}\n  除塵 (${r.dustLogs.length}/${dustLimits[i]}):\n    ${r.dustLogs.map(t => '－ ' + t).join('\n')}`
+      ).join('\n\n');
+
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}_紀錄.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     renderLog('yuyu');
     renderLog('coffee');
     updateProgress('yuyu');
     updateProgress('coffee');
     updateFlower('yuyu');
     updateFlower('coffee');
+    updateMessage('yuyu');
+    updateMessage('coffee');
   </script>
 </body>
 </html>
