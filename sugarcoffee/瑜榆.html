@@ -1,130 +1,260 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>瑜榆的愛心種植紀錄 - 強化版</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: linear-gradient(135deg, #2c3e50, #4ca1af);
-            color: #fff;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            max-width: 600px;
-            width: 90%;
-            margin: auto;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.2);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            flex-direction: column;
-        }
-        button {
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            background: #27ae60;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #2ecc71;
-        }
-        .timestamp {
-            font-size: 14px;
-            color: #a0a0a0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>愛心種植紀錄</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to right, #ffe6f0, #e6f7ff);
+      padding: 2rem;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    button {
+      margin: 6px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      background-color: #ff69b4;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    button:hover {
+      background-color: #ff1493;
+      transform: scale(1.05);
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+    }
+    .card {
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 300px;
+      position: relative;
+    }
+    .card h2 {
+      margin-top: 0;
+    }
+    .log {
+      background: #f9f9f9;
+      padding: 1rem;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      text-align: left;
+      font-size: 14px;
+      margin-top: 1rem;
+    }
+    .button-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .progress-bar {
+      height: 12px;
+      background: #eee;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .flower {
+      width: 60px;
+      height: 60px;
+      margin: 1rem auto;
+      background-image: url('https://cdn-icons-png.flaticon.com/512/869/869869.png');
+      background-size: cover;
+      transform: scale(0);
+      transition: transform 0.6s ease;
+    }
+    .flower.grow {
+      transform: scale(1);
+    }
+
+    /* 色調 A：瑜榆粉紅 */
+    .card.yuyu {
+      background: #fff0f5;
+    }
+    .card.yuyu h2 {
+      color: #ff69b4;
+    }
+    .card.yuyu .progress-bar-inner {
+      background: #ff69b4;
+    }
+
+    /* 色調 B：咖啡棠藍紫 */
+    .card.coffee {
+      background: #e6f0ff;
+    }
+    .card.coffee h2 {
+      color: #6a5acd;
+    }
+    .card.coffee .progress-bar-inner {
+      background: #6a5acd;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>🌸 瑜榆的愛心種植紀錄 - 強化版 🌸</h2>
-        <div class="status" id="status"></div>
-        <div class="button-group">
-            <button onclick="clearAll()">清除全部</button>
-            <button onclick="recordAction('seedButton')" id="seedButton">下種子</button>
-            <div id="seedButton_time" class="timestamp"></div>
-        </div>
-        <div id="stages"></div>
+  <h1>💖 愛心種植紀錄系統 💖</h1>
+  <div class="container">
+    <div class="card yuyu">
+      <h2>瑜榆的紀錄</h2>
+      <div class="button-group">
+        <button onclick="plantSeed('yuyu')">🌱 下種子</button>
+        <button onclick="clearRecords('yuyu')">🗑️ 清除紀錄</button>
+      </div>
+      <div class="button-group">
+        <button onclick="water('yuyu')">💧 澆水</button>
+        <button onclick="dust('yuyu')">🧹 除塵</button>
+      </div>
+      <div class="progress-bar"><div id="progress-yuyu" class="progress-bar-inner"></div></div>
+      <div id="flower-yuyu" class="flower"></div>
+      <div id="log-yuyu" class="log"></div>
     </div>
-    <script>
-        function createStages() {
-            document.getElementById('stages').innerHTML = '';
-            const repeatCounts = [1, 1, 5, 9];
-            for (let i = 1; i <= 4; i++) {
-                document.getElementById('stages').innerHTML += `<h3>第${i}階段</h3>`;
-                for (let j = 1; j <= repeatCounts[i - 1]; j++) {
-                    document.getElementById('stages').innerHTML += `
-                        <div class="button-group">
-                            <button onclick="recordAction('water_${i}_${j}')" id="water_${i}_${j}">澆水 ${i} (${j}/1)</button>
-                            <div id="water_${i}_${j}_time" class="timestamp"></div>
-                            <button onclick="recordAction('dust_${i}_${j}')" id="dust_${i}_${j}">除塵 ${i} (${j}/1)</button>
-                            <div id="dust_${i}_${j}_time" class="timestamp"></div>
-                        </div>`;
-                }
-            }
-        }
 
-        function recordAction(buttonId) {
-            let timestamp = new Date().toLocaleString('zh-TW');
-            document.getElementById(buttonId + '_time').innerHTML = `時間：${timestamp}`;
-            storeState(buttonId, timestamp);
-        }
+    <div class="card coffee">
+      <h2>咖啡棠的紀錄</h2>
+      <div class="button-group">
+        <button onclick="plantSeed('coffee')">🌱 下種子</button>
+        <button onclick="clearRecords('coffee')">🗑️ 清除紀錄</button>
+      </div>
+      <div class="button-group">
+        <button onclick="water('coffee')">💧 澆水</button>
+        <button onclick="dust('coffee')">🧹 除塵</button>
+      </div>
+      <div class="progress-bar"><div id="progress-coffee" class="progress-bar-inner"></div></div>
+      <div id="flower-coffee" class="flower"></div>
+      <div id="log-coffee" class="log"></div>
+    </div>
+  </div>
 
-        function storeState(buttonId, timestamp) {
-            try {
-                let logData = JSON.parse(localStorage.getItem('plantingData')) || { actions: {} };
-                logData.actions[buttonId] = timestamp;
-                logData.lastVisit = new Date().toLocaleString('zh-TW');
-                localStorage.setItem('plantingData', JSON.stringify(logData));
-                console.log('✅ 儲存成功:', JSON.stringify(logData));
-            } catch (error) {
-                console.error('❌ 儲存錯誤:', error);
-            }
-        }
+  <script>
+    const waterLimits = [1, 1, 5, 9];
+    const dustLimits = [1, 1, 5, 9];
 
-        function loadState() {
-            try {
-                let logData = JSON.parse(localStorage.getItem('plantingData'));
-                createStages();
-                if (!logData) {
-                    document.getElementById('status').innerHTML = '首次登入，歡迎!';
-                    return;
-                }
-                document.getElementById('status').innerHTML = `上次登入時間：${logData.lastVisit}`;
-                for (const buttonId in logData.actions) {
-                    const timestampElement = document.getElementById(buttonId + '_time');
-                    if (timestampElement) timestampElement.innerHTML = `時間：${logData.actions[buttonId]}`;
-                }
-                console.log('✅ 載入成功:', JSON.stringify(logData));
-            } catch (error) {
-                console.error('❌ 載入錯誤:', error);
-            }
-        }
+    let data = {
+      yuyu: JSON.parse(localStorage.getItem('plantLog-yuyu')) || [],
+      coffee: JSON.parse(localStorage.getItem('plantLog-coffee')) || []
+    };
 
-        function clearAll() {
-            if (confirm('確定要清除所有紀錄嗎？')) {
-                localStorage.removeItem('plantingData');
-                createStages();
-                document.getElementById('status').innerHTML = '紀錄已清除';
-            }
-        }
+    function getPhase(records) {
+      return Math.min(records.length - 1, 3);
+    }
 
-        document.addEventListener('DOMContentLoaded', loadState);
-    </script>
+    function plantSeed(type) {
+      const records = data[type];
+      if (records.length === 0) {
+        records.push({ seedTime: new Date().toLocaleString(), waterLogs: [], dustLogs: [] });
+        saveAndRender(type);
+      } else {
+        alert("只能在第一次開始時下種子！接下來會自動進入下一階段。");
+      }
+    }
+
+    function water(type) {
+      const records = data[type];
+      if (records.length === 0) return alert("請先下種子！");
+      const phase = getPhase(records);
+      if ((records[phase].waterLogs || []).length < waterLimits[phase]) {
+        records[phase].waterLogs.push(new Date().toLocaleString());
+        checkAutoAdvance(records);
+        saveAndRender(type);
+      } else {
+        alert("此階段澆水已達上限！");
+      }
+    }
+
+    function dust(type) {
+      const records = data[type];
+      if (records.length === 0) return alert("請先下種子！");
+      const phase = getPhase(records);
+      if ((records[phase].dustLogs || []).length < dustLimits[phase]) {
+        records[phase].dustLogs.push(new Date().toLocaleString());
+        checkAutoAdvance(records);
+        saveAndRender(type);
+      } else {
+        alert("此階段除塵已達上限！");
+      }
+    }
+
+    function checkAutoAdvance(records) {
+      const phase = getPhase(records);
+      if ((records[phase].waterLogs || []).length >= waterLimits[phase] && (records[phase].dustLogs || []).length >= dustLimits[phase]) {
+        if (records.length < 4) {
+          records.push({ seedTime: new Date().toLocaleString(), waterLogs: [], dustLogs: [] });
+        }
+      }
+    }
+
+    function clearRecords(type) {
+      if (confirm("確定要清除所有紀錄？")) {
+        localStorage.removeItem('plantLog-' + type);
+        data[type] = [];
+        renderLog(type);
+        updateProgress(type);
+        updateFlower(type);
+      }
+    }
+
+    function saveAndRender(type) {
+      localStorage.setItem('plantLog-' + type, JSON.stringify(data[type]));
+      renderLog(type);
+      updateProgress(type);
+      updateFlower(type);
+    }
+
+    function renderLog(type) {
+      const records = data[type];
+      let text = records.map((r, i) =>
+        `階段 ${i + 1}：\n  種子時間：${r.seedTime}\n  澆水 (${r.waterLogs.length}/${waterLimits[i]}):\n    ${r.waterLogs.map(t => '－ ' + t).join('\n')}\n  除塵 (${r.dustLogs.length}/${dustLimits[i]}):\n    ${r.dustLogs.map(t => '－ ' + t).join('\n')}`
+      ).join('\n\n');
+      document.getElementById('log-' + type).textContent = text || '尚無紀錄。';
+    }
+
+    function updateProgress(type) {
+      const records = data[type];
+      if (records.length === 0) {
+        document.getElementById('progress-' + type).style.width = '0%';
+        return;
+      }
+      const phase = getPhase(records);
+      const total = waterLimits[phase] + dustLimits[phase];
+      const done = (records[phase].waterLogs || []).length + (records[phase].dustLogs || []).length;
+      const percent = Math.min(100, (done / total) * 100);
+      document.getElementById('progress-' + type).style.width = percent + '%';
+    }
+
+    function updateFlower(type) {
+      const flower = document.getElementById('flower-' + type);
+      const records = data[type];
+      if (records.length > 0) {
+        flower.classList.add('grow');
+      } else {
+        flower.classList.remove('grow');
+      }
+    }
+
+    renderLog('yuyu');
+    renderLog('coffee');
+    updateProgress('yuyu');
+    updateProgress('coffee');
+    updateFlower('yuyu');
+    updateFlower('coffee');
+  </script>
 </body>
 </html>
