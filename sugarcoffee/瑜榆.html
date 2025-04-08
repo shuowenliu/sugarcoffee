@@ -5,7 +5,7 @@
   <title>愛心種植計畫</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -39,15 +39,12 @@
       return user.displayName || user.email || user.uid;
     }
 
-    function countAction(records, action) {
-      return records.filter(r => r.action === action).length;
-    }
-
     function getStageAndProgress(records) {
+      records = [...records].sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
       if (!records.some(r => r.action === '下種子')) return { stage: 0 };
 
       let stage = 1;
-      let remaining = [...records];
+      let remaining = [...records].reverse();
       for (let i = 1; i < stageDefs.length; i++) {
         const req = stageDefs[i];
         let wCount = 0, dCount = 0;
@@ -90,10 +87,8 @@
       try {
         const result = await signInWithPopup(auth, provider);
         user = result.user;
-        console.log("✅ 登入成功：", user);
         loadHistory();
       } catch (err) {
-        console.error("❌ 登入失敗：", err);
         alert("登入失敗，請確認 Firebase Authentication 設定及允許的網域。");
       }
     };
@@ -103,9 +98,9 @@
     };
 
     async function getUserRecords() {
-      const querySnapshot = await getDocs(historyCollection);
-      const records = querySnapshot.docs.map(doc => doc.data()).filter(d => d.user === getUserId() && d.role === currentRole);
-      return records;
+      const q = query(historyCollection, orderBy("timestamp", "asc"));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data()).filter(d => d.user === getUserId() && d.role === currentRole);
     }
 
     window.addPlantingRecord = async function(action) {
@@ -133,7 +128,6 @@
         });
         loadHistory();
       } catch (err) {
-        console.error("❌ 寫入失敗：", err);
         alert("⚠️ 無法寫入資料庫，請檢查 Firestore 權限設定。");
       }
     };
@@ -150,7 +144,6 @@
         }
         loadHistory();
       } catch (err) {
-        console.error("❌ 清除失敗：", err);
         alert("⚠️ 無法清除紀錄，請檢查 Firestore 權限設定。");
       }
     };
@@ -165,7 +158,8 @@
       const coffeeRecords = [];
 
       try {
-        const querySnapshot = await getDocs(historyCollection);
+        const q = query(historyCollection, orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           const li = document.createElement("li");
@@ -182,7 +176,6 @@
         updateStageView('瑜榆', yuyuRecords);
         updateStageView('咖啡棠', coffeeRecords);
       } catch (err) {
-        console.error("❌ 讀取紀錄失敗：", err);
         alert("⚠️ 無法讀取紀錄，請檢查 Firestore 權限設定。");
       }
     };
@@ -196,22 +189,10 @@
     });
 
     function updateUI(user) {
-      const loginBtn = document.getElementById("login-btn");
-      const logoutBtn = document.getElementById("logout-btn");
-      const controls = document.getElementById("controls");
-      const status = document.getElementById("status");
-
-      if (user) {
-        loginBtn.style.display = "none";
-        logoutBtn.style.display = "inline-block";
-        controls.style.display = "block";
-        status.textContent = `👤 已登入：${user.displayName || user.email}`;
-      } else {
-        loginBtn.style.display = "inline-block";
-        logoutBtn.style.display = "none";
-        controls.style.display = "none";
-        status.textContent = "未登入";
-      }
+      document.getElementById("login-btn").style.display = user ? "none" : "inline-block";
+      document.getElementById("logout-btn").style.display = user ? "inline-block" : "none";
+      document.getElementById("controls").style.display = user ? "block" : "none";
+      document.getElementById("status").textContent = user ? `👤 已登入：${user.displayName || user.email}` : "未登入";
     }
   </script>
   <style>
