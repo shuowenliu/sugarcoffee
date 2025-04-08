@@ -6,6 +6,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC5VJ1cb_ihQSlfzQm8vLa-0exU5-YTrc0",
@@ -19,12 +20,41 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const historyCollection = collection(db, "plantingHistory");
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    let user = null;
+    const historyCollection = collection(db, "sharedPlantingHistory"); // 改為共享集合
+
+    function updateUI(user) {
+      const loginBtn = document.getElementById("login-btn");
+      const logoutBtn = document.getElementById("logout-btn");
+      const controls = document.getElementById("controls");
+      loginBtn.style.display = user ? "none" : "inline-block";
+      logoutBtn.style.display = user ? "inline-block" : "none";
+      controls.style.display = user ? "block" : "none";
+    }
+
+    window.login = async function () {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        user = result.user;
+        loadHistory();
+      } catch (err) {
+        console.error("登入失敗：", err);
+      }
+    };
+
+    window.logout = async function () {
+      await signOut(auth);
+    };
 
     window.addPlantingRecord = async function(action) {
+      if (!user) return alert("請先登入再操作。");
       try {
         await addDoc(historyCollection, {
           action,
+          user: user.displayName || user.email || user.uid,
           timestamp: serverTimestamp()
         });
         loadHistory();
@@ -35,10 +65,11 @@
     };
 
     window.clearHistory = async function() {
+      if (!user) return alert("請先登入再操作。");
       try {
         const querySnapshot = await getDocs(historyCollection);
         for (const docItem of querySnapshot.docs) {
-          await deleteDoc(doc(db, "plantingHistory", docItem.id));
+          await deleteDoc(doc(db, "sharedPlantingHistory", docItem.id));
         }
         loadHistory();
       } catch (err) {
@@ -55,7 +86,7 @@
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           const li = document.createElement("li");
-          li.textContent = `${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
+          li.textContent = `${data.user || '匿名'}：${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
           historyList.appendChild(li);
         });
       } catch (err) {
@@ -64,8 +95,12 @@
       }
     };
 
-    window.addEventListener("DOMContentLoaded", () => {
-      loadHistory();
+    onAuthStateChanged(auth, (currentUser) => {
+      user = currentUser;
+      if (user) {
+        loadHistory();
+      }
+      updateUI(user);
     });
   </script>
   <style>
@@ -75,11 +110,16 @@
     button:hover { background-color: #deb887; }
     ul { list-style-type: none; padding: 0; }
     li { margin: 0.5em 0; }
+    #logout-btn { display: none; }
   </style>
 </head>
 <body>
   <h1>☕ 愛心種植計畫</h1>
   <div>
+    <button id="login-btn" onclick="login()">🔐 登入</button>
+    <button id="logout-btn" onclick="logout()">🚪 登出</button>
+  </div>
+  <div id="controls" style="display:none">
     <button onclick="addPlantingRecord('下種子')">🌱 下種子</button>
     <button onclick="addPlantingRecord('澆水')">💧 澆水</button>
     <button onclick="addPlantingRecord('除塵')">🧹 除塵</button>
