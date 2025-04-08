@@ -188,7 +188,7 @@
     async function getUserRecords() {
       const q = query(historyCollection, orderBy("timestamp", "asc"));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => doc.data()).filter(d => d.user === getUserId() && d.role === currentRole);
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(d => d.user === getUserId() && d.role === currentRole);
     }
 
     window.addPlantingRecord = async function(action) {
