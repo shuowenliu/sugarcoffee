@@ -21,8 +21,7 @@
     }
     #container {
       display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
+      justify-content: space-between;
       margin-top: 30px;
     }
     .section {
@@ -221,6 +220,17 @@
       }
     };
 
+    window.deleteHistory = async function(recordId) {
+      if (!user) return alert("請先登入再操作。");
+
+      try {
+        await deleteDoc(doc(db, "sharedPlantingHistory", recordId));
+        loadHistory();
+      } catch (err) {
+        alert("無法刪除紀錄，請確認權限。");
+      }
+    };
+
     window.loadHistory = async function () {
       const history = await getUserRecords();
       const historyList = document.getElementById(currentRole === '瑜榆' ? 'yuyu-history' : 'coffee-history');
@@ -228,6 +238,10 @@
       history.forEach(record => {
         const li = document.createElement('li');
         li.textContent = `${record.action} at ${new Date(record.timestamp.seconds * 1000).toLocaleString()}`;
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '刪除';
+        deleteButton.onclick = () => deleteHistory(record.id);
+        li.appendChild(deleteButton);
         historyList.appendChild(li);
       });
       updateStageView(currentRole, history);
