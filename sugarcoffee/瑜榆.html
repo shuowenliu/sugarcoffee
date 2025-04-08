@@ -172,6 +172,8 @@
         if (stage > 0) return alert("已經下過種子，無法再次下種。");
       } else if (action === '澆水') {
         if (wProgress === undefined) return alert("無法澆水，請先下種並依照順序進行。");
+        if (stage === 0) return alert("請先下種子才能進行澆水。");
+        if (stage === 1 && wProgress > 1) return alert("第一階段澆水僅能進行一次！");
         if (stageDefs[stage + 1]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
       } else if (action === '除塵') {
         if (dProgress === undefined || wProgress - 1 < stageDefs[stage + 1]?.watering) return alert("請先完成本階段所需澆水次數。");
