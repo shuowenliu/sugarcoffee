@@ -66,6 +66,16 @@
       text-align: center;
       margin-bottom: 20px;
     }
+    .role-selection button {
+      margin: 5px;
+    }
+    .progress-container {
+      display: flex;
+      justify-content: space-between;
+    }
+    .progress-container div {
+      width: 48%;
+    }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -90,14 +100,6 @@
     let user = null;
     let currentRole = "瑜榆"; // 預設角色為 瑜榆
     const historyCollection = collection(db, "sharedPlantingHistory");
-
-    const stageDefs = [
-      { watering: 0, dusting: 0 },
-      { watering: 1, dusting: 1 },
-      { watering: 1, dusting: 1 },
-      { watering: 5, dusting: 5 },
-      { watering: 9, dusting: 9 },
-    ];
 
     function getUserId() {
       return user.displayName || user.email || user.uid;
@@ -338,11 +340,19 @@
     <button onclick="addPlantingRecord('除塵')">除塵</button>
     <button onclick="clearHistory()">清除紀錄</button>
   </div>
-  <h3>瑜榆的進度</h3>
-  <div id="yuyu-stage"></div>
-  <ul id="yuyu-history"></ul>
-  <h3>咖啡棠的進度</h3>
-  <div id="coffee-stage"></div>
-  <ul id="coffee-history"></ul>
+
+  <div class="progress-container">
+    <div>
+      <h3>瑜榆的進度</h3>
+      <div id="yuyu-stage"></div>
+      <ul id="yuyu-history"></ul>
+    </div>
+
+    <div>
+      <h3>咖啡棠的進度</h3>
+      <div id="coffee-stage"></div>
+      <ul id="coffee-history"></ul>
+    </div>
+  </div>
 </body>
 </html>
