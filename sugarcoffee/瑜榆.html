@@ -40,31 +40,58 @@
     }
 
     function getStageAndProgress(records) {
-      records = [...records].sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
       if (!records.some(r => r.action === '下種子')) return { stage: 0 };
 
       let stage = 1;
-      let remaining = [...records].reverse();
+      let remaining = [...records].filter(r => r.action !== '下種子');
+
       for (let i = 1; i < stageDefs.length; i++) {
-        const req = stageDefs[i];
-        let wCount = 0, dCount = 0;
-        for (let rec of remaining) {
-          if (rec.action === '澆水' && wCount < req.watering) {
-            wCount++;
-          } else if (rec.action === '除塵' && wCount >= req.watering && dCount < req.dusting) {
-            dCount++;
+        const { watering, dusting } = stageDefs[i];
+        let count = 0;
+        let expected = [];
+        for (let w = 0; w < watering; w++) expected.push('澆水');
+        for (let d = 0; d < dusting; d++) expected.push('除塵');
+
+        for (let j = 0; j < expected.length && count < remaining.length; j++) {
+          if (remaining[count].action === expected[j]) {
+            count++;
           } else {
-            break;
+            return {
+              stage: i,
+              wProgress: expected.slice(0, j + 1).filter(x => x === '澆水').length,
+              dProgress: expected.slice(0, j + 1).filter(x => x === '除塵').length
+            };
           }
         }
-        if (wCount === req.watering && dCount === req.dusting) {
-          stage = i;
-          remaining = remaining.slice(wCount + dCount);
+        if (count < remaining.length) {
+          remaining = remaining.slice(count);
+          stage++;
         } else {
-          return { stage, wProgress: wCount + 1, dProgress: dCount + 1 };
+          return {
+            stage: i,
+            wProgress: watering,
+            dProgress: dusting
+          };
         }
       }
-      return { stage };
+      return { stage: stageDefs.length - 1 };
+    }
+
+    function groupByStage(records) {
+      const stages = [[], [], [], [], []];
+      let i = 0;
+      let r = [...records];
+      for (let stage = 1; stage < stageDefs.length; stage++) {
+        const { watering, dusting } = stageDefs[stage];
+        const actions = [];
+        for (let w = 0; w < watering; w++) actions.push('澆水');
+        for (let d = 0; d < dusting; d++) actions.push('除塵');
+        actions.forEach(act => {
+          if (r[i]?.action === act) stages[stage].push(r[i++]);
+        });
+      }
+      stages[0] = records.filter(r => r.action === '下種子');
+      return stages;
     }
 
     function updateStageView(userName, records) {
@@ -72,7 +99,7 @@
       const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
       const { stage, wProgress, dProgress } = getStageAndProgress(records);
       let extra = '';
-      if (wProgress && dProgress) {
+      if (wProgress !== undefined && dProgress !== undefined) {
         extra = `（澆水第 ${wProgress} 次，除塵第 ${dProgress} 次）`;
       }
       stageDiv.textContent = `🌟 當前階段：${stageNames[stage]}${extra}`;
@@ -113,10 +140,9 @@
         if (stage > 0) return alert("已經下過種子，無法再次下種。");
       } else if (action === '澆水') {
         if (wProgress === undefined) return alert("無法澆水，請先下種並依照順序進行。");
-        if (stageDefs[stage + 1]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
+        if (stageDefs[stage]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
       } else if (action === '除塵') {
-        if (dProgress === undefined || wProgress - 1 < stageDefs[stage + 1]?.watering) return alert("請先完成本階段所需澆水次數。");
-        if (stageDefs[stage + 1]?.dusting < dProgress) return alert("除塵次數已達上限，請等待下階段。");
+        if (dProgress === undefined || stageDefs[stage]?.dusting < dProgress) return alert("除塵次數已達上限或尚未完成澆水。");
       }
 
       try {
@@ -158,21 +184,25 @@
       const coffeeRecords = [];
 
       try {
-        const q = query(historyCollection, orderBy("timestamp", "desc"));
+        const q = query(historyCollection, orderBy("timestamp", "asc"));
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          const li = document.createElement("li");
-          li.textContent = `${data.user || '匿名'}：${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
-
-          if (data.role === "瑜榆") {
-            yuyuList.appendChild(li);
-            yuyuRecords.push(data);
-          } else if (data.role === "咖啡棠") {
-            coffeeList.appendChild(li);
-            coffeeRecords.push(data);
-          }
+          if (data.role === "瑜榆") yuyuRecords.push(data);
+          if (data.role === "咖啡棠") coffeeRecords.push(data);
         });
+
+        function render(listEl, records) {
+          const stages = groupByStage(records);
+          listEl.innerHTML = stages.map((group, idx) => `
+            <li><strong>第${idx}階段</strong></li>
+            ${group.slice().reverse().map(r => `<li>${r.user || '匿名'}：${r.action} - ${r.timestamp?.toDate?.().toLocaleString() || '尚未同步'}</li>`).join('')}
+          `).join('');
+        }
+
+        render(yuyuList, yuyuRecords);
+        render(coffeeList, coffeeRecords);
+
         updateStageView('瑜榆', yuyuRecords);
         updateStageView('咖啡棠', coffeeRecords);
       } catch (err) {
