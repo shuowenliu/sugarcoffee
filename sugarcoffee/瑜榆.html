@@ -221,4 +221,66 @@
       }
     };
 
-   
+    window.loadHistory = async function () {
+      const history = await getUserRecords();
+      const historyList = document.getElementById(currentRole === '瑜榆' ? 'yuyu-history' : 'coffee-history');
+      historyList.innerHTML = "";
+      history.forEach(record => {
+        const li = document.createElement('li');
+        li.textContent = `${record.action} at ${new Date(record.timestamp.seconds * 1000).toLocaleString()}`;
+        historyList.appendChild(li);
+      });
+      updateStageView(currentRole, history);
+    };
+
+    onAuthStateChanged(auth, (u) => {
+      if (u) {
+        user = u;
+        document.getElementById('login-btn').style.display = 'none';
+        document.getElementById('logout-btn').style.display = 'inline-block';
+        loadHistory();
+      } else {
+        user = null;
+        document.getElementById('login-btn').style.display = 'inline-block';
+        document.getElementById('logout-btn').style.display = 'none';
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <header>
+    愛心種植
+  </header>
+
+  <div class="auth-buttons">
+    <button id="login-btn" onclick="login()">登入</button>
+    <button id="logout-btn" style="display:none;" onclick="logout()">登出</button>
+  </div>
+
+  <div id="container">
+    <div class="section" id="yuyu-section">
+      <h2>瑜榆植物</h2>
+      <div class="status" id="yuyu-stage">🌱 當前階段：尚未開始</div>
+      <div>
+        <button onclick="addPlantingRecord('下種子')">下種子</button>
+        <button onclick="addPlantingRecord('澆水')">澆水</button>
+        <button onclick="addPlantingRecord('除塵')">除塵</button>
+      </div>
+      <ul class="history-list" id="yuyu-history"></ul>
+    </div>
+
+    <div class="section" id="coffee-section">
+      <h2>咖啡棠植物</h2>
+      <div class="status" id="coffee-stage">🌱 當前階段：尚未開始</div>
+      <div>
+        <button onclick="addPlantingRecord('下種子')">下種子</button>
+        <button onclick="addPlantingRecord('澆水')">澆水</button>
+        <button onclick="addPlantingRecord('除塵')">除塵</button>
+      </div>
+      <ul class="history-list" id="coffee-history"></ul>
+    </div>
+  </div>
+
+</body>
+</html>
