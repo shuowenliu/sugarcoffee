@@ -40,58 +40,90 @@
     }
 
     function getStageAndProgress(records) {
+      records = [...records].sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
       if (!records.some(r => r.action === '下種子')) return { stage: 0 };
 
       let stage = 1;
-      let remaining = [...records].filter(r => r.action !== '下種子');
+      let remaining = [...records].reverse();
 
-      for (let i = 1; i < stageDefs.length; i++) {
-        const { watering, dusting } = stageDefs[i];
-        let count = 0;
-        let expected = [];
-        for (let w = 0; w < watering; w++) expected.push('澆水');
-        for (let d = 0; d < dusting; d++) expected.push('除塵');
+      // 第一階段，先一次澆水，再一次除塵
+      const firstStageRequired = { watering: 1, dusting: 1 };
+      let wCount = 0, dCount = 0;
+      for (let rec of remaining) {
+        if (rec.action === '澆水' && wCount < firstStageRequired.watering) {
+          wCount++;
+        } else if (rec.action === '除塵' && wCount >= firstStageRequired.watering && dCount < firstStageRequired.dusting) {
+          dCount++;
+        } else {
+          break;
+        }
+      }
 
-        for (let j = 0; j < expected.length && count < remaining.length; j++) {
-          if (remaining[count].action === expected[j]) {
-            count++;
+      if (wCount === firstStageRequired.watering && dCount === firstStageRequired.dusting) {
+        stage = 2;
+        remaining = remaining.slice(wCount + dCount);
+      }
+
+      // 第二階段，接著進行一次澆水一次除塵
+      if (stage === 2) {
+        const secondStageRequired = { watering: 1, dusting: 1 };
+        wCount = 0;
+        dCount = 0;
+        for (let rec of remaining) {
+          if (rec.action === '澆水' && wCount < secondStageRequired.watering) {
+            wCount++;
+          } else if (rec.action === '除塵' && wCount >= secondStageRequired.watering && dCount < secondStageRequired.dusting) {
+            dCount++;
           } else {
-            return {
-              stage: i,
-              wProgress: expected.slice(0, j + 1).filter(x => x === '澆水').length,
-              dProgress: expected.slice(0, j + 1).filter(x => x === '除塵').length
-            };
+            break;
           }
         }
-        if (count < remaining.length) {
-          remaining = remaining.slice(count);
-          stage++;
-        } else {
-          return {
-            stage: i,
-            wProgress: watering,
-            dProgress: dusting
-          };
+        if (wCount === secondStageRequired.watering && dCount === secondStageRequired.dusting) {
+          stage = 3;
+          remaining = remaining.slice(wCount + dCount);
         }
       }
-      return { stage: stageDefs.length - 1 };
-    }
 
-    function groupByStage(records) {
-      const stages = [[], [], [], [], []];
-      let i = 0;
-      let r = [...records];
-      for (let stage = 1; stage < stageDefs.length; stage++) {
-        const { watering, dusting } = stageDefs[stage];
-        const actions = [];
-        for (let w = 0; w < watering; w++) actions.push('澆水');
-        for (let d = 0; d < dusting; d++) actions.push('除塵');
-        actions.forEach(act => {
-          if (r[i]?.action === act) stages[stage].push(r[i++]);
-        });
+      // 第三階段，進行五次澆水五次除塵
+      if (stage === 3) {
+        const thirdStageRequired = { watering: 5, dusting: 5 };
+        wCount = 0;
+        dCount = 0;
+        for (let rec of remaining) {
+          if (rec.action === '澆水' && wCount < thirdStageRequired.watering) {
+            wCount++;
+          } else if (rec.action === '除塵' && wCount >= thirdStageRequired.watering && dCount < thirdStageRequired.dusting) {
+            dCount++;
+          } else {
+            break;
+          }
+        }
+        if (wCount === thirdStageRequired.watering && dCount === thirdStageRequired.dusting) {
+          stage = 4;
+          remaining = remaining.slice(wCount + dCount);
+        }
       }
-      stages[0] = records.filter(r => r.action === '下種子');
-      return stages;
+
+      // 第四階段，進行九次澆水九次除塵
+      if (stage === 4) {
+        const fourthStageRequired = { watering: 9, dusting: 9 };
+        wCount = 0;
+        dCount = 0;
+        for (let rec of remaining) {
+          if (rec.action === '澆水' && wCount < fourthStageRequired.watering) {
+            wCount++;
+          } else if (rec.action === '除塵' && wCount >= fourthStageRequired.watering && dCount < fourthStageRequired.dusting) {
+            dCount++;
+          } else {
+            break;
+          }
+        }
+        if (wCount === fourthStageRequired.watering && dCount === fourthStageRequired.dusting) {
+          stage = 5;
+        }
+      }
+
+      return { stage, wProgress: wCount + 1, dProgress: dCount + 1 };
     }
 
     function updateStageView(userName, records) {
@@ -99,7 +131,7 @@
       const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
       const { stage, wProgress, dProgress } = getStageAndProgress(records);
       let extra = '';
-      if (wProgress !== undefined && dProgress !== undefined) {
+      if (wProgress && dProgress) {
         extra = `（澆水第 ${wProgress} 次，除塵第 ${dProgress} 次）`;
       }
       stageDiv.textContent = `🌟 當前階段：${stageNames[stage]}${extra}`;
@@ -140,9 +172,10 @@
         if (stage > 0) return alert("已經下過種子，無法再次下種。");
       } else if (action === '澆水') {
         if (wProgress === undefined) return alert("無法澆水，請先下種並依照順序進行。");
-        if (stageDefs[stage]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
+        if (stageDefs[stage + 1]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
       } else if (action === '除塵') {
-        if (dProgress === undefined || stageDefs[stage]?.dusting < dProgress) return alert("除塵次數已達上限或尚未完成澆水。");
+        if (dProgress === undefined || wProgress - 1 < stageDefs[stage + 1]?.watering) return alert("請先完成本階段所需澆水次數。");
+        if (stageDefs[stage + 1]?.dusting < dProgress) return alert("除塵次數已達上限，請等待下階段。");
       }
 
       try {
@@ -184,25 +217,21 @@
       const coffeeRecords = [];
 
       try {
-        const q = query(historyCollection, orderBy("timestamp", "asc"));
+        const q = query(historyCollection, orderBy("timestamp", "desc"));
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          if (data.role === "瑜榆") yuyuRecords.push(data);
-          if (data.role === "咖啡棠") coffeeRecords.push(data);
+          const li = document.createElement("li");
+          li.textContent = `${data.user || '匿名'}：${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
+
+          if (data.role === "瑜榆") {
+            yuyuList.appendChild(li);
+            yuyuRecords.push(data);
+          } else if (data.role === "咖啡棠") {
+            coffeeList.appendChild(li);
+            coffeeRecords.push(data);
+          }
         });
-
-        function render(listEl, records) {
-          const stages = groupByStage(records);
-          listEl.innerHTML = stages.map((group, idx) => `
-            <li><strong>第${idx}階段</strong></li>
-            ${group.slice().reverse().map(r => `<li>${r.user || '匿名'}：${r.action} - ${r.timestamp?.toDate?.().toLocaleString() || '尚未同步'}</li>`).join('')}
-          `).join('');
-        }
-
-        render(yuyuList, yuyuRecords);
-        render(coffeeList, coffeeRecords);
-
         updateStageView('瑜榆', yuyuRecords);
         updateStageView('咖啡棠', coffeeRecords);
       } catch (err) {
@@ -219,57 +248,28 @@
     });
 
     function updateUI(user) {
-      document.getElementById("login-btn").style.display = user ? "none" : "inline-block";
-      document.getElementById("logout-btn").style.display = user ? "inline-block" : "none";
-      document.getElementById("controls").style.display = user ? "block" : "none";
-      document.getElementById("status").textContent = user ? `👤 已登入：${user.displayName || user.email}` : "未登入";
+      document.getElementById("login-btn").style.display = user ? "none" : "block";
+      document.getElementById("logout-btn").style.display = user ? "block" : "none";
+      document.getElementById("user-name").textContent = user ? user.displayName : "未登入";
     }
   </script>
-  <style>
-    body { font-family: sans-serif; padding: 2em; background: #fffaf0; }
-    h1 { color: #d2691e; text-align: center; }
-    button { margin: 0.5em; padding: 1em 2em; font-size: 1em; background-color: #f5deb3; border: none; border-radius: 8px; cursor: pointer; }
-    button:hover { background-color: #deb887; }
-    ul { list-style-type: none; padding: 0; }
-    li { margin: 0.5em 0; }
-    #logout-btn { display: none; }
-    #status { margin-top: 1em; color: #444; font-size: 1.1em; text-align: center; }
-    #history-section { display: flex; justify-content: space-around; margin-top: 2em; }
-    .history-column { width: 45%; background: #fff; padding: 1em; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    .history-column h3 { text-align: center; }
-    .stage { text-align: center; font-weight: bold; margin-bottom: 0.5em; color: #6b4226; }
-    .role-select { text-align: center; margin-top: 1em; }
-  </style>
 </head>
 <body>
-  <h1>☕ 愛心種植計畫</h1>
-  <div style="text-align:center">
-    <button id="login-btn" onclick="login()">🔐 登入</button>
-    <button id="logout-btn" onclick="logout()">🚪 登出</button>
-    <div id="status">未登入</div>
+  <h1>愛心種植計畫</h1>
+  <p id="user-name">未登入</p>
+  <button id="login-btn" onclick="login()">登入</button>
+  <button id="logout-btn" onclick="logout()">登出</button>
+  <div>
+    <button onclick="addPlantingRecord('下種子')">下種子</button>
+    <button onclick="addPlantingRecord('澆水')">澆水</button>
+    <button onclick="addPlantingRecord('除塵')">除塵</button>
+    <button onclick="clearHistory()">清除紀錄</button>
   </div>
-  <div class="role-select">
-    <label>選擇角色：</label>
-    <button onclick="setRole('瑜榆')">🧑‍🌾 瑜榆</button>
-    <button onclick="setRole('咖啡棠')">👩‍🌾 咖啡棠</button>
-  </div>
-  <div id="controls" style="display:none; text-align:center">
-    <button onclick="addPlantingRecord('下種子')">🌱 下種子</button>
-    <button onclick="addPlantingRecord('澆水')">💧 澆水</button>
-    <button onclick="addPlantingRecord('除塵')">🧹 除塵</button>
-    <button onclick="clearHistory()">🗑️ 清除紀錄</button>
-  </div>
-  <div id="history-section">
-    <div class="history-column">
-      <h3>🧑‍🌾 瑜榆的紀錄</h3>
-      <div class="stage" id="yuyu-stage">🌟 當前階段：尚未開始</div>
-      <ul id="yuyu-history"></ul>
-    </div>
-    <div class="history-column">
-      <h3>👩‍🌾 咖啡棠的紀錄</h3>
-      <div class="stage" id="coffee-stage">🌟 當前階段：尚未開始</div>
-      <ul id="coffee-history"></ul>
-    </div>
-  </div>
+  <h3>瑜榆的進度</h3>
+  <div id="yuyu-stage"></div>
+  <ul id="yuyu-history"></ul>
+  <h3>咖啡棠的進度</h3>
+  <div id="coffee-stage"></div>
+  <ul id="coffee-history"></ul>
 </body>
 </html>
