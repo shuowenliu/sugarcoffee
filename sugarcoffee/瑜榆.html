@@ -220,11 +220,14 @@
       }
     };
 
-    window.deleteHistory = async function(recordId) {
+    window.deleteAllHistory = async function () {
       if (!user) return alert("請先登入再操作。");
 
+      const records = await getUserRecords();
       try {
-        await deleteDoc(doc(db, "sharedPlantingHistory", recordId));
+        for (const record of records) {
+          await deleteDoc(doc(db, "sharedPlantingHistory", record.id));
+        }
         loadHistory();
       } catch (err) {
         alert("無法刪除紀錄，請確認權限。");
@@ -238,11 +241,6 @@
       history.forEach(record => {
         const li = document.createElement('li');
         li.textContent = `${record.action} at ${new Date(record.timestamp.seconds * 1000).toLocaleString()}`;
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = '刪除';
-        deleteButton.onclick = () => deleteHistory(record.id);
-        li.appendChild(deleteButton);
-        historyList.appendChild(li);
       });
       updateStageView(currentRole, history);
     };
@@ -282,6 +280,7 @@
         <button onclick="addPlantingRecord('除塵')">除塵</button>
       </div>
       <ul class="history-list" id="yuyu-history"></ul>
+      <button onclick="deleteAllHistory()">刪除所有紀錄</button>
     </div>
 
     <div class="section" id="coffee-section">
@@ -293,6 +292,7 @@
         <button onclick="addPlantingRecord('除塵')">除塵</button>
       </div>
       <ul class="history-list" id="coffee-history"></ul>
+      <button onclick="deleteAllHistory()">刪除所有紀錄</button>
     </div>
   </div>
 
