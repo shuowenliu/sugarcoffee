@@ -1,9 +1,97 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>愛心種植</title>
+  <title>愛心種植計畫</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f8fb;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background-color: #6fa3f7;
+      color: white;
+      padding: 10px 0;
+      text-align: center;
+      font-size: 24px;
+    }
+    #container {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+    .section {
+      width: 45%;
+      background-color: #fff;
+      padding: 20px;
+      margin: 10px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .section h2 {
+      text-align: center;
+      font-size: 20px;
+      color: #333;
+    }
+    .section button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      background-color: #6fa3f7;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .section button:hover {
+      background-color: #5a8ce1;
+    }
+    .section p {
+      font-size: 16px;
+      text-align: center;
+      color: #555;
+    }
+    .status {
+      display: flex;
+      justify-content: space-between;
+      font-size: 16px;
+      color: #333;
+    }
+    .history-list {
+      list-style: none;
+      padding: 0;
+    }
+    .history-list li {
+      background-color: #f0f4f8;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .auth-buttons {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .auth-buttons button {
+      padding: 10px 20px;
+      background-color: #6fa3f7;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin: 0 10px;
+      cursor: pointer;
+    }
+    .auth-buttons button:hover {
+      background-color: #5a8ce1;
+    }
+  </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -25,8 +113,16 @@
     const provider = new GoogleAuthProvider();
 
     let user = null;
-    let currentRole = "瑜榆"; // 預設角色為 瑜榆
+    let currentRole = "瑜榆";
     const historyCollection = collection(db, "sharedPlantingHistory");
+
+    const stageDefs = [
+      { watering: 0, dusting: 0 },
+      { watering: 1, dusting: 1 },
+      { watering: 1, dusting: 1 },
+      { watering: 5, dusting: 5 },
+      { watering: 9, dusting: 9 },
+    ];
 
     function getUserId() {
       return user.displayName || user.email || user.uid;
@@ -38,85 +134,26 @@
 
       let stage = 1;
       let remaining = [...records].reverse();
-
-      // 第一階段，先一次澆水，再一次除塵
-      const firstStageRequired = { watering: 1, dusting: 1 };
-      let wCount = 0, dCount = 0;
-      for (let rec of remaining) {
-        if (rec.action === '澆水' && wCount < firstStageRequired.watering) {
-          wCount++;
-        } else if (rec.action === '除塵' && wCount >= firstStageRequired.watering && dCount < firstStageRequired.dusting) {
-          dCount++;
+      for (let i = 1; i < stageDefs.length; i++) {
+        const req = stageDefs[i];
+        let wCount = 0, dCount = 0;
+        for (let rec of remaining) {
+          if (rec.action === '澆水' && wCount < req.watering) {
+            wCount++;
+          } else if (rec.action === '除塵' && wCount >= req.watering && dCount < req.dusting) {
+            dCount++;
+          } else {
+            break;
+          }
+        }
+        if (wCount === req.watering && dCount === req.dusting) {
+          stage = i;
+          remaining = remaining.slice(wCount + dCount);
         } else {
-          break;
+          return { stage, wProgress: wCount + 1, dProgress: dCount + 1 };
         }
       }
-
-      if (wCount === firstStageRequired.watering && dCount === firstStageRequired.dusting) {
-        stage = 2;
-        remaining = remaining.slice(wCount + dCount);
-      }
-
-      // 第二階段，接著進行一次澆水一次除塵
-      if (stage === 2) {
-        const secondStageRequired = { watering: 1, dusting: 1 };
-        wCount = 0;
-        dCount = 0;
-        for (let rec of remaining) {
-          if (rec.action === '澆水' && wCount < secondStageRequired.watering) {
-            wCount++;
-          } else if (rec.action === '除塵' && wCount >= secondStageRequired.watering && dCount < secondStageRequired.dusting) {
-            dCount++;
-          } else {
-            break;
-          }
-        }
-        if (wCount === secondStageRequired.watering && dCount === secondStageRequired.dusting) {
-          stage = 3;
-          remaining = remaining.slice(wCount + dCount);
-        }
-      }
-
-      // 第三階段，進行五次澆水五次除塵
-      if (stage === 3) {
-        const thirdStageRequired = { watering: 5, dusting: 5 };
-        wCount = 0;
-        dCount = 0;
-        for (let rec of remaining) {
-          if (rec.action === '澆水' && wCount < thirdStageRequired.watering) {
-            wCount++;
-          } else if (rec.action === '除塵' && wCount >= thirdStageRequired.watering && dCount < thirdStageRequired.dusting) {
-            dCount++;
-          } else {
-            break;
-          }
-        }
-        if (wCount === thirdStageRequired.watering && dCount === thirdStageRequired.dusting) {
-          stage = 4;
-          remaining = remaining.slice(wCount + dCount);
-        }
-      }
-
-      // 第四階段，進行九次澆水九次除塵
-      if (stage === 4) {
-        const fourthStageRequired = { watering: 9, dusting: 9 };
-        wCount = 0;
-        dCount = 0;
-        for (let rec of remaining) {
-          if (rec.action === '澆水' && wCount < fourthStageRequired.watering) {
-            wCount++;
-          } else if (rec.action === '除塵' && wCount >= fourthStageRequired.watering && dCount < fourthStageRequired.dusting) {
-            dCount++;
-          } else {
-            break;
-          }
-        }
-        if (wCount === fourthStageRequired.watering && dCount === fourthStageRequired.dusting) {
-          stage = 5;
-        }
-      }
-
-      return { stage, wProgress: wCount + 1, dProgress: dCount + 1 };
+      return { stage };
     }
 
     function updateStageView(userName, records) {
@@ -165,12 +202,9 @@
         if (stage > 0) return alert("已經下過種子，無法再次下種。");
       } else if (action === '澆水') {
         if (wProgress === undefined) return alert("無法澆水，請先下種並依照順序進行。");
-        if (stage === 0) return alert("請先下種子才能進行澆水。");
-        if (stage === 1 && wProgress > 1) return alert("第一階段澆水僅能進行一次！");
         if (stageDefs[stage + 1]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
       } else if (action === '除塵') {
-        if (dProgress === undefined || wProgress < 1) return alert("請先完成本階段所需澆水次數後再進行除塵。");
-        if (wProgress === 1 && stage === 1 && dProgress === 0) return alert("第一階段可以進行除塵。");
+        if (dProgress === undefined || wProgress - 1 < stageDefs[stage + 1]?.watering) return alert("請先完成本階段所需澆水次數。");
         if (stageDefs[stage + 1]?.dusting < dProgress) return alert("除塵次數已達上限，請等待下階段。");
       }
 
@@ -187,106 +221,4 @@
       }
     };
 
-    window.clearHistory = async function() {
-      if (!user) return alert("請先登入再操作。");
-      try {
-        const querySnapshot = await getDocs(historyCollection);
-        for (const docItem of querySnapshot.docs) {
-          const data = docItem.data();
-          if (data.user === getUserId() && data.role === currentRole) {
-            await deleteDoc(doc(db, "sharedPlantingHistory", docItem.id));
-          }
-        }
-        loadHistory();
-      } catch (err) {
-        alert("⚠️ 無法清除紀錄，請檢查 Firestore 權限設定。");
-      }
-    };
-
-    window.loadHistory = async function() {
-      const yuyuList = document.getElementById("yuyu-history");
-      const coffeeList = document.getElementById("coffee-history");
-      yuyuList.innerHTML = "";
-      coffeeList.innerHTML = "";
-
-      const yuyuRecords = [];
-      const coffeeRecords = [];
-
-      try {
-        const q = query(historyCollection, orderBy("timestamp", "desc"));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const li = document.createElement("li");
-          li.textContent = `${data.user || '匿名'}：${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
-
-          if (data.role === "瑜榆") {
-            yuyuList.appendChild(li);
-            yuyuRecords.push(data);
-          } else if (data.role === "咖啡棠") {
-            coffeeList.appendChild(li);
-            coffeeRecords.push(data);
-          }
-        });
-        updateStageView('瑜榆', yuyuRecords);
-        updateStageView('咖啡棠', coffeeRecords);
-      } catch (err) {
-        alert("⚠️ 無法讀取紀錄，請檢查 Firestore 權限設定。");
-      }
-    };
-
-    onAuthStateChanged(auth, (currentUser) => {
-      user = currentUser;
-      if (user) {
-        loadHistory();
-      }
-      updateUI(user);
-    });
-
-    function updateUI(user) {
-      document.getElementById("login-btn").style.display = user ? "none" : "block";
-      document.getElementById("logout-btn").style.display = user ? "block" : "none";
-      document.getElementById("user-name").textContent = user ? user.displayName : "未登入";
-    }
-  </script>
-</head>
-<body>
-
-  <header>
-    愛心種植
-  </header>
-
-  <div class="auth-buttons">
-    <button id="login-btn" onclick="login()">登入</button>
-    <button id="logout-btn" style="display:none;" onclick="logout()">登出</button>
-  </div>
-
-  <div id="container">
-    <div class="section" id="yuyu-section">
-      <h2>瑜榆植物</h2>
-      <div class="status" id="yuyu-stage">🌱 當前階段：尚未開始</div>
-      <div>
-        <button onclick="addPlantingRecord('下種子')">下種子</button>
-        <button onclick="addPlantingRecord('澆水')">澆水</button>
-        <button onclick="addPlantingRecord('除塵')">除塵</button>
-      </div>
-      <ul class="history-list" id="yuyu-history"></ul>
-    </div>
-
-    <div class="section" id="coffee-section">
-      <h2>咖啡棠植物</h2>
-      <div class="status" id="coffee-stage">🌱 當前階段：尚未開始</div>
-      <div>
-        <button onclick="addPlantingRecord('下種子')">下種子</button>
-        <button onclick="addPlantingRecord('澆水')">澆水</button>
-        <button onclick="addPlantingRecord('除塵')">除塵</button>
-      </div>
-      <ul class="history-list" id="coffee-history"></ul>
-    </div>
-  </div>
-
-  <script type="module">
-    // 上面給的 JS 代碼
-  </script>
-</body>
-</html>
+   
