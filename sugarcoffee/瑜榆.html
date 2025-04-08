@@ -24,7 +24,176 @@
     const provider = new GoogleAuthProvider();
 
     let user = null;
+    let currentRole = "瑜榆";
     const historyCollection = collection(db, "sharedPlantingHistory");
+
+    const stageDefs = [
+      { watering: 0, dusting: 0 },
+      { watering: 1, dusting: 1 },
+      { watering: 1, dusting: 1 },
+      { watering: 5, dusting: 5 },
+      { watering: 9, dusting: 9 },
+    ];
+
+    function getUserId() {
+      return user.displayName || user.email || user.uid;
+    }
+
+    function countAction(records, action) {
+      return records.filter(r => r.action === action).length;
+    }
+
+    function getStageAndProgress(records) {
+      if (!records.some(r => r.action === '下種子')) return { stage: 0 };
+
+      let stage = 1;
+      let remaining = [...records];
+      for (let i = 1; i < stageDefs.length; i++) {
+        const req = stageDefs[i];
+        let wCount = 0, dCount = 0;
+        for (let rec of remaining) {
+          if (rec.action === '澆水' && wCount < req.watering) {
+            wCount++;
+          } else if (rec.action === '除塵' && wCount >= req.watering && dCount < req.dusting) {
+            dCount++;
+          } else {
+            break;
+          }
+        }
+        if (wCount === req.watering && dCount === req.dusting) {
+          stage = i;
+          remaining = remaining.slice(wCount + dCount);
+        } else {
+          return { stage, wProgress: wCount + 1, dProgress: dCount + 1 };
+        }
+      }
+      return { stage };
+    }
+
+    function updateStageView(userName, records) {
+      const stageDiv = document.getElementById(userName === '瑜榆' ? 'yuyu-stage' : 'coffee-stage');
+      const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
+      const { stage, wProgress, dProgress } = getStageAndProgress(records);
+      let extra = '';
+      if (wProgress && dProgress) {
+        extra = `（澆水第 ${wProgress} 次，除塵第 ${dProgress} 次）`;
+      }
+      stageDiv.textContent = `🌟 當前階段：${stageNames[stage]}${extra}`;
+    }
+
+    window.setRole = function(role) {
+      currentRole = role;
+      loadHistory();
+    }
+
+    window.login = async function () {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        user = result.user;
+        console.log("✅ 登入成功：", user);
+        loadHistory();
+      } catch (err) {
+        console.error("❌ 登入失敗：", err);
+        alert("登入失敗，請確認 Firebase Authentication 設定及允許的網域。");
+      }
+    };
+
+    window.logout = async function () {
+      await signOut(auth);
+    };
+
+    async function getUserRecords() {
+      const querySnapshot = await getDocs(historyCollection);
+      const records = querySnapshot.docs.map(doc => doc.data()).filter(d => d.user === getUserId() && d.role === currentRole);
+      return records;
+    }
+
+    window.addPlantingRecord = async function(action) {
+      if (!user) return alert("請先登入再操作。");
+
+      const records = await getUserRecords();
+      const { stage, wProgress, dProgress } = getStageAndProgress(records);
+
+      if (action === '下種子') {
+        if (stage > 0) return alert("已經下過種子，無法再次下種。");
+      } else if (action === '澆水') {
+        if (wProgress === undefined) return alert("無法澆水，請先下種並依照順序進行。");
+        if (stageDefs[stage + 1]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
+      } else if (action === '除塵') {
+        if (dProgress === undefined || wProgress - 1 < stageDefs[stage + 1]?.watering) return alert("請先完成本階段所需澆水次數。");
+        if (stageDefs[stage + 1]?.dusting < dProgress) return alert("除塵次數已達上限，請等待下階段。");
+      }
+
+      try {
+        await addDoc(historyCollection, {
+          action,
+          user: getUserId(),
+          role: currentRole,
+          timestamp: serverTimestamp()
+        });
+        loadHistory();
+      } catch (err) {
+        console.error("❌ 寫入失敗：", err);
+        alert("⚠️ 無法寫入資料庫，請檢查 Firestore 權限設定。");
+      }
+    };
+
+    window.clearHistory = async function() {
+      if (!user) return alert("請先登入再操作。");
+      try {
+        const querySnapshot = await getDocs(historyCollection);
+        for (const docItem of querySnapshot.docs) {
+          const data = docItem.data();
+          if (data.user === getUserId() && data.role === currentRole) {
+            await deleteDoc(doc(db, "sharedPlantingHistory", docItem.id));
+          }
+        }
+        loadHistory();
+      } catch (err) {
+        console.error("❌ 清除失敗：", err);
+        alert("⚠️ 無法清除紀錄，請檢查 Firestore 權限設定。");
+      }
+    };
+
+    window.loadHistory = async function() {
+      const yuyuList = document.getElementById("yuyu-history");
+      const coffeeList = document.getElementById("coffee-history");
+      yuyuList.innerHTML = "";
+      coffeeList.innerHTML = "";
+
+      const yuyuRecords = [];
+      const coffeeRecords = [];
+
+      try {
+        const querySnapshot = await getDocs(historyCollection);
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const li = document.createElement("li");
+          li.textContent = `${data.user || '匿名'}：${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
+
+          if (data.role === "瑜榆") {
+            yuyuList.appendChild(li);
+            yuyuRecords.push(data);
+          } else if (data.role === "咖啡棠") {
+            coffeeList.appendChild(li);
+            coffeeRecords.push(data);
+          }
+        });
+        updateStageView('瑜榆', yuyuRecords);
+        updateStageView('咖啡棠', coffeeRecords);
+      } catch (err) {
+        console.error("❌ 讀取紀錄失敗：", err);
+        alert("⚠️ 無法讀取紀錄，請檢查 Firestore 權限設定。");
+      }
+    };
+
+    onAuthStateChanged(auth, (currentUser) => {
+      user = currentUser;
+      if (user) {
+        loadHistory();
+      }
+      updateUI(user);
+    });
 
     function updateUI(user) {
       const loginBtn = document.getElementById("login-btn");
@@ -44,130 +213,6 @@
         status.textContent = "未登入";
       }
     }
-
-    window.login = async function () {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        user = result.user;
-        console.log("✅ 登入成功：", user);
-        loadHistory();
-      } catch (err) {
-        console.error("❌ 登入失敗：", err);
-        alert("登入失敗，請確認 Firebase Authentication 設定及允許的網域。");
-      }
-    };
-
-    window.logout = async function () {
-      await signOut(auth);
-    };
-
-    async function hasPlantedSeed() {
-      const querySnapshot = await getDocs(historyCollection);
-      return querySnapshot.docs.some(doc => {
-        const data = doc.data();
-        return data.user === (user.displayName || user.email || user.uid) && data.action === '下種子';
-      });
-    }
-
-    window.addPlantingRecord = async function(action) {
-      if (!user) return alert("請先登入再操作。");
-
-      if (action === '下種子') {
-        const planted = await hasPlantedSeed();
-        if (planted) {
-          return alert("已經下過種子，無法再次下種。");
-        }
-      }
-
-      const stage = calculateStage((await getDocs(historyCollection)).docs.map(doc => doc.data()).filter(d => d.user === (user.displayName || user.email || user.uid)));
-      if (action === '下種子' && stage > 0) {
-        return alert("已開始進程，無法重新下種子。");
-      }
-
-      try {
-        await addDoc(historyCollection, {
-          action,
-          user: user.displayName || user.email || user.uid,
-          timestamp: serverTimestamp()
-        });
-        loadHistory();
-      } catch (err) {
-        console.error("❌ 寫入失敗：", err);
-        alert("⚠️ 無法寫入資料庫，請檢查 Firestore 權限設定。");
-      }
-    };
-
-    window.clearHistory = async function() {
-      if (!user) return alert("請先登入再操作。");
-      try {
-        const querySnapshot = await getDocs(historyCollection);
-        for (const docItem of querySnapshot.docs) {
-          await deleteDoc(doc(db, "sharedPlantingHistory", docItem.id));
-        }
-        loadHistory();
-      } catch (err) {
-        console.error("❌ 清除失敗：", err);
-        alert("⚠️ 無法清除紀錄，請檢查 Firestore 權限設定。");
-      }
-    };
-
-    function calculateStage(records) {
-      const seed = records.some(r => r.action === '下種子');
-      if (!seed) return 0;
-      const watering = records.filter(r => r.action === '澆水').length;
-      const dusting = records.filter(r => r.action === '除塵').length;
-      const stage = watering >= 9 && dusting >= 9 ? 4 :
-                    watering >= 5 && dusting >= 5 ? 3 :
-                    watering >= 1 && dusting >= 1 ? 2 :
-                    1;
-      return stage;
-    }
-
-    function updateStageView(userName, stage) {
-      const stageDiv = document.getElementById(userName === '瑜榆' ? 'yuyu-stage' : 'coffee-stage');
-      const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
-      stageDiv.textContent = `🌟 當前階段：${stageNames[stage]}`;
-    }
-
-    window.loadHistory = async function() {
-      const yuyuList = document.getElementById("yuyu-history");
-      const coffeeList = document.getElementById("coffee-history");
-      yuyuList.innerHTML = "";
-      coffeeList.innerHTML = "";
-
-      const yuyuRecords = [];
-      const coffeeRecords = [];
-
-      try {
-        const querySnapshot = await getDocs(historyCollection);
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const li = document.createElement("li");
-          li.textContent = `${data.user || '匿名'}：${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
-
-          if ((data.user || '').includes("瑜榆")) {
-            yuyuList.appendChild(li);
-            yuyuRecords.push(data);
-          } else {
-            coffeeList.appendChild(li);
-            coffeeRecords.push(data);
-          }
-        });
-        updateStageView('瑜榆', calculateStage(yuyuRecords));
-        updateStageView('咖啡棠', calculateStage(coffeeRecords));
-      } catch (err) {
-        console.error("❌ 讀取紀錄失敗：", err);
-        alert("⚠️ 無法讀取紀錄，請檢查 Firestore 權限設定。");
-      }
-    };
-
-    onAuthStateChanged(auth, (currentUser) => {
-      user = currentUser;
-      if (user) {
-        loadHistory();
-      }
-      updateUI(user);
-    });
   </script>
   <style>
     body { font-family: sans-serif; padding: 2em; background: #fffaf0; }
@@ -182,6 +227,7 @@
     .history-column { width: 45%; background: #fff; padding: 1em; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
     .history-column h3 { text-align: center; }
     .stage { text-align: center; font-weight: bold; margin-bottom: 0.5em; color: #6b4226; }
+    .role-select { text-align: center; margin-top: 1em; }
   </style>
 </head>
 <body>
@@ -190,6 +236,11 @@
     <button id="login-btn" onclick="login()">🔐 登入</button>
     <button id="logout-btn" onclick="logout()">🚪 登出</button>
     <div id="status">未登入</div>
+  </div>
+  <div class="role-select">
+    <label>選擇角色：</label>
+    <button onclick="setRole('瑜榆')">🧑‍🌾 瑜榆</button>
+    <button onclick="setRole('咖啡棠')">👩‍🌾 咖啡棠</button>
   </div>
   <div id="controls" style="display:none; text-align:center">
     <button onclick="addPlantingRecord('下種子')">🌱 下種子</button>
