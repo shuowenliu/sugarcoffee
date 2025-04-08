@@ -61,8 +61,29 @@
       await signOut(auth);
     };
 
+    async function hasPlantedSeed() {
+      const querySnapshot = await getDocs(historyCollection);
+      return querySnapshot.docs.some(doc => {
+        const data = doc.data();
+        return data.user === (user.displayName || user.email || user.uid) && data.action === '下種子';
+      });
+    }
+
     window.addPlantingRecord = async function(action) {
       if (!user) return alert("請先登入再操作。");
+
+      if (action === '下種子') {
+        const planted = await hasPlantedSeed();
+        if (planted) {
+          return alert("已經下過種子，無法再次下種。");
+        }
+      }
+
+      const stage = calculateStage((await getDocs(historyCollection)).docs.map(doc => doc.data()).filter(d => d.user === (user.displayName || user.email || user.uid)));
+      if (action === '下種子' && stage > 0) {
+        return alert("已開始進程，無法重新下種子。");
+      }
+
       try {
         await addDoc(historyCollection, {
           action,
@@ -90,17 +111,50 @@
       }
     };
 
+    function calculateStage(records) {
+      const seed = records.some(r => r.action === '下種子');
+      if (!seed) return 0;
+      const watering = records.filter(r => r.action === '澆水').length;
+      const dusting = records.filter(r => r.action === '除塵').length;
+      const stage = watering >= 9 && dusting >= 9 ? 4 :
+                    watering >= 5 && dusting >= 5 ? 3 :
+                    watering >= 1 && dusting >= 1 ? 2 :
+                    1;
+      return stage;
+    }
+
+    function updateStageView(userName, stage) {
+      const stageDiv = document.getElementById(userName === '瑜榆' ? 'yuyu-stage' : 'coffee-stage');
+      const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
+      stageDiv.textContent = `🌟 當前階段：${stageNames[stage]}`;
+    }
+
     window.loadHistory = async function() {
-      const historyList = document.getElementById("history");
-      historyList.innerHTML = "";
+      const yuyuList = document.getElementById("yuyu-history");
+      const coffeeList = document.getElementById("coffee-history");
+      yuyuList.innerHTML = "";
+      coffeeList.innerHTML = "";
+
+      const yuyuRecords = [];
+      const coffeeRecords = [];
+
       try {
         const querySnapshot = await getDocs(historyCollection);
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           const li = document.createElement("li");
           li.textContent = `${data.user || '匿名'}：${data.action} - ${data.timestamp?.toDate?.().toLocaleString() || '尚未同步'}`;
-          historyList.appendChild(li);
+
+          if ((data.user || '').includes("瑜榆")) {
+            yuyuList.appendChild(li);
+            yuyuRecords.push(data);
+          } else {
+            coffeeList.appendChild(li);
+            coffeeRecords.push(data);
+          }
         });
+        updateStageView('瑜榆', calculateStage(yuyuRecords));
+        updateStageView('咖啡棠', calculateStage(coffeeRecords));
       } catch (err) {
         console.error("❌ 讀取紀錄失敗：", err);
         alert("⚠️ 無法讀取紀錄，請檢查 Firestore 權限設定。");
@@ -116,30 +170,44 @@
     });
   </script>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2em; background: #fffaf0; }
-    h1 { color: #d2691e; }
+    body { font-family: sans-serif; padding: 2em; background: #fffaf0; }
+    h1 { color: #d2691e; text-align: center; }
     button { margin: 0.5em; padding: 1em 2em; font-size: 1em; background-color: #f5deb3; border: none; border-radius: 8px; cursor: pointer; }
     button:hover { background-color: #deb887; }
     ul { list-style-type: none; padding: 0; }
     li { margin: 0.5em 0; }
     #logout-btn { display: none; }
-    #status { margin-top: 1em; color: #444; font-size: 1.1em; }
+    #status { margin-top: 1em; color: #444; font-size: 1.1em; text-align: center; }
+    #history-section { display: flex; justify-content: space-around; margin-top: 2em; }
+    .history-column { width: 45%; background: #fff; padding: 1em; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    .history-column h3 { text-align: center; }
+    .stage { text-align: center; font-weight: bold; margin-bottom: 0.5em; color: #6b4226; }
   </style>
 </head>
 <body>
   <h1>☕ 愛心種植計畫</h1>
-  <div>
+  <div style="text-align:center">
     <button id="login-btn" onclick="login()">🔐 登入</button>
     <button id="logout-btn" onclick="logout()">🚪 登出</button>
     <div id="status">未登入</div>
   </div>
-  <div id="controls" style="display:none">
+  <div id="controls" style="display:none; text-align:center">
     <button onclick="addPlantingRecord('下種子')">🌱 下種子</button>
     <button onclick="addPlantingRecord('澆水')">💧 澆水</button>
     <button onclick="addPlantingRecord('除塵')">🧹 除塵</button>
     <button onclick="clearHistory()">🗑️ 清除紀錄</button>
   </div>
-  <h2>🕘 種植紀錄</h2>
-  <ul id="history"></ul>
+  <div id="history-section">
+    <div class="history-column">
+      <h3>🧑‍🌾 瑜榆的紀錄</h3>
+      <div class="stage" id="yuyu-stage">🌟 當前階段：尚未開始</div>
+      <ul id="yuyu-history"></ul>
+    </div>
+    <div class="history-column">
+      <h3>👩‍🌾 咖啡棠的紀錄</h3>
+      <div class="stage" id="coffee-stage">🌟 當前階段：尚未開始</div>
+      <ul id="coffee-history"></ul>
+    </div>
+  </div>
 </body>
 </html>
