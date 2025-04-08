@@ -3,6 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <title>愛心種植計畫</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #2E8B57;
+    }
+    p {
+      text-align: center;
+      font-size: 18px;
+    }
+    button {
+      background-color: #2E8B57;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+      display: inline-block;
+    }
+    button:hover {
+      background-color: #3CB371;
+    }
+    #login-btn, #logout-btn {
+      display: inline-block;
+      font-size: 16px;
+    }
+    #yuyu-stage, #coffee-stage {
+      margin: 20px 0;
+      font-size: 18px;
+      color: #2E8B57;
+    }
+    #yuyu-history, #coffee-history {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    #yuyu-history li, #coffee-history li {
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      margin-bottom: 5px;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
