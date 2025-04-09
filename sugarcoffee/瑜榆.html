@@ -1,200 +1,189 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>愛心種植日記</title>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <title>愛心種植紀錄</title>
   <style>
     body {
       font-family: 'Noto Sans TC', sans-serif;
-      background: linear-gradient(#ffe6f0, #ffffff);
-      color: #333;
-      padding: 20px;
-    }
-    .container {
-      max-width: 700px;
-      margin: auto;
-      background: #fff0f5;
-      padding: 20px;
-      border-radius: 20px;
-      box-shadow: 0 0 10px rgba(255, 192, 203, 0.4);
-    }
-    h1 {
+      background: linear-gradient(to right, #fdeff9, #ecf0f3);
+      color: #444;
       text-align: center;
-      color: #d63384;
+      padding: 30px;
     }
     button {
       padding: 10px 20px;
-      margin: 5px;
-      border: none;
+      margin: 10px;
+      font-size: 1rem;
       border-radius: 12px;
-      background-color: #ff99cc;
-      color: white;
+      border: none;
+      background-color: #f9c5d1;
       cursor: pointer;
-      font-size: 16px;
+      transition: background 0.3s;
     }
     button:disabled {
-      background-color: #f5c6d6;
+      background-color: #ddd;
       cursor: not-allowed;
     }
-    .log {
-      background: #fff;
-      padding: 10px;
-      margin-top: 20px;
-      border-radius: 10px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .log p {
-      margin: 5px 0;
-      font-size: 14px;
-    }
-    .stage-info {
-      font-size: 16px;
-      margin: 10px 0;
+    #log {
+      margin-top: 30px;
+      text-align: left;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      background: #fff8f8;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 8px #f3c4ce;
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
+
 <body>
-<div class="container">
-  <h1>愛心種植日記</h1>
-  <div class="stage-info" id="stageInfo">請點擊「下種子」開始</div>
-  <button id="plantBtn">下種子</button>
-  <button id="waterBtn" disabled>澆水</button>
-  <button id="dustBtn" disabled>除塵</button>
-  <button id="clearBtn">清除紀錄</button>
-  <div class="log" id="log"></div>
-</div>
+  <h1>🌸 愛心種植計畫 🌸</h1>
+  <div>
+    <button id="plantSeed">🌱 下種子</button>
+    <button id="water" disabled>💧 澆水</button>
+    <button id="dust" disabled>🧼 除塵</button>
+    <button id="clear">🗑 清除紀錄</button>
+  </div>
+  <div id="status"></div>
+  <div id="log"></div>
 
-<script>
-  const firebaseConfig = {
-    // 這裡請填上你自己的 Firebase 設定
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-  
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const recordRef = db.collection('heartPlanting').doc('sharedLog');
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC5VJ1cb_ihQSlfzQm8vLa-0exU5-YTrc0",
+      authDomain: "coffeesugar-planting.firebaseapp.com",
+      projectId: "coffeesugar-planting",
+      storageBucket: "coffeesugar-planting.appspot.com",
+      messagingSenderId: "1049930202443",
+      appId: "1:1049930202443:web:exampleappid" // 替換成你的實際 App ID
+    };
 
-  const plantBtn = document.getElementById('plantBtn');
-  const waterBtn = document.getElementById('waterBtn');
-  const dustBtn = document.getElementById('dustBtn');
-  const logDiv = document.getElementById('log');
-  const stageInfo = document.getElementById('stageInfo');
-  const clearBtn = document.getElementById('clearBtn');
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const recordRef = db.collection('heart_planting').doc('record');
 
-  let logData = [];
+    const seedBtn = document.getElementById('plantSeed');
+    const waterBtn = document.getElementById('water');
+    const dustBtn = document.getElementById('dust');
+    const clearBtn = document.getElementById('clear');
+    const logDiv = document.getElementById('log');
+    const statusDiv = document.getElementById('status');
 
-  const stageRequirements = [1, 1, 5, 9];
+    const stageLimits = [1, 1, 5, 9];
 
-  async function loadLog() {
-    const doc = await recordRef.get();
-    if (doc.exists) {
-      logData = doc.data().log || [];
+    let state = {
+      seeded: false,
+      stage: 0,
+      progress: 0,
+      log: [],
+      nextAction: 'water'
+    };
+
+    function updateUI() {
+      if (!state.seeded) {
+        seedBtn.disabled = false;
+        waterBtn.disabled = true;
+        dustBtn.disabled = true;
+        statusDiv.innerText = '請先下種子';
+      } else {
+        seedBtn.disabled = true;
+        const isWater = state.nextAction === 'water';
+        waterBtn.disabled = !isWater;
+        dustBtn.disabled = isWater;
+        const stageText = `目前為第 ${state.stage + 1} 階段，第 ${Math.floor(state.progress / 2) + 1} 次 ${isWater ? '澆水' : '除塵'}`;
+        statusDiv.innerText = stageText;
+      }
+      renderLog();
+    }
+
+    function renderLog() {
+      logDiv.innerHTML = '<h3>紀錄：</h3>' + (state.log.length ? state.log.map(e => `<div>【${e.action}】第${e.stage + 1}階段，第${e.count}次 - ${e.time}</div>`).join('') : '無');
+    }
+
+    async function saveState() {
+      await recordRef.set(state);
+    }
+
+    function logAction(action) {
+      const now = new Date().toLocaleString();
+      const entry = {
+        action,
+        stage: state.stage,
+        count: Math.floor(state.progress / 2) + 1,
+        time: now
+      };
+      state.log.push(entry);
+    }
+
+    seedBtn.onclick = async () => {
+      const doc = await recordRef.get();
+      if (doc.exists && doc.data().seeded) return;
+      state = {
+        seeded: true,
+        stage: 0,
+        progress: 0,
+        log: [],
+        nextAction: 'water'
+      };
+      logAction('下種子');
+      await saveState();
+      updateUI();
+    };
+
+    waterBtn.onclick = async () => {
+      if (state.nextAction !== 'water') return;
+      logAction('澆水');
+      state.progress++;
+      state.nextAction = 'dust';
+      await checkProgress();
+    };
+
+    dustBtn.onclick = async () => {
+      if (state.nextAction !== 'dust') return;
+      logAction('除塵');
+      state.progress++;
+      state.nextAction = 'water';
+      await checkProgress();
+    };
+
+    async function checkProgress() {
+      const limit = stageLimits[state.stage] * 2; // 每次澆水+除塵等於2動作
+      if (state.progress >= limit) {
+        state.stage++;
+        state.progress = 0;
+      }
+      await saveState();
       updateUI();
     }
-  }
 
-  function getStage() {
-    if (logData.length === 0) return -1;
-    let water = 0, dust = 0, stage = 0;
-    for (let entry of logData.slice(1)) {
-      if (entry.action === '澆水') water++;
-      else if (entry.action === '除塵') dust++;
+    clearBtn.onclick = async () => {
+      await recordRef.delete();
+      state = {
+        seeded: false,
+        stage: 0,
+        progress: 0,
+        log: [],
+        nextAction: 'water'
+      };
+      updateUI();
+    };
 
-      if (water >= stageRequirements[stage] && dust >= stageRequirements[stage]) {
-        water -= stageRequirements[stage];
-        dust -= stageRequirements[stage];
-        stage++;
+    async function init() {
+      const doc = await recordRef.get();
+      if (doc.exists) {
+        state = doc.data();
       }
-    }
-    return stage;
-  }
-
-  function getNextAction() {
-    if (logData.length === 0) return '下種子';
-    let actions = logData.slice(1).map(e => e.action);
-    return actions.length % 2 === 0 ? '澆水' : '除塵';
-  }
-
-  function updateUI() {
-    logDiv.innerHTML = '';
-    logData.forEach((entry, index) => {
-      const p = document.createElement('p');
-      p.textContent = `${index === 0 ? '種子' : entry.action}：${entry.time}`;
-      logDiv.appendChild(p);
-    });
-
-    const stage = getStage();
-    if (stage >= 4) {
-      stageInfo.textContent = `🎉 完成所有階段！`;
-      waterBtn.disabled = true;
-      dustBtn.disabled = true;
-      return;
+      updateUI();
     }
 
-    stageInfo.textContent = `第 ${stage + 1} 階段：澆水 ${countAction('澆水', stage)} / ${stageRequirements[stage]}，除塵 ${countAction('除塵', stage)} / ${stageRequirements[stage]}`;
-    const next = getNextAction();
-
-    plantBtn.disabled = logData.length > 0;
-    waterBtn.disabled = next !== '澆水';
-    dustBtn.disabled = next !== '除塵';
-  }
-
-  function countAction(type, currentStage) {
-    let water = 0, dust = 0, stage = 0;
-    for (let entry of logData.slice(1)) {
-      if (entry.action === '澆水') water++;
-      else if (entry.action === '除塵') dust++;
-
-      if (water >= stageRequirements[stage] && dust >= stageRequirements[stage]) {
-        if (stage === currentStage) break;
-        water -= stageRequirements[stage];
-        dust -= stageRequirements[stage];
-        stage++;
-      }
-    }
-    return type === '澆水' ? water : dust;
-  }
-
-  async function saveLog() {
-    await recordRef.set({ log: logData });
-    updateUI();
-  }
-
-  plantBtn.onclick = async () => {
-    const now = new Date().toLocaleString();
-    logData.push({ action: '下種子', time: now });
-    await saveLog();
-  };
-
-  waterBtn.onclick = async () => {
-    const now = new Date().toLocaleString();
-    logData.push({ action: '澆水', time: now });
-    await saveLog();
-  };
-
-  dustBtn.onclick = async () => {
-    const now = new Date().toLocaleString();
-    logData.push({ action: '除塵', time: now });
-    await saveLog();
-  };
-
-  clearBtn.onclick = async () => {
-    if (confirm('確定要清除所有紀錄嗎？')) {
-      logData = [];
-      await saveLog();
-    }
-  };
-
-  loadLog();
-</script>
+    init();
+  </script>
 </body>
+
 </html>
