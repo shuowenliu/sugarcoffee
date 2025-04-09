@@ -25,6 +25,8 @@
     let wateringCount = 0;
     let dustingCount = 0;
     let stage = 0; // 初始階段
+    let seedPlanted = false; // 是否下過種子
+    let isWatering = true; // 是否正在澆水（用來確保澆水除塵交替進行）
 
     // 設置每個階段的進度要求
     const stageDefs = [
@@ -85,25 +87,50 @@
     }
 
     window.addPlantingRecord = async function(action) {
-      if (action === '下種子' && stage > 0) {
-        return alert("已經下過種子，無法再次下種。");
+      if (action === '下種子') {
+        if (seedPlanted) {
+          return alert("已經下過種子，無法再次下種。");
+        }
+        seedPlanted = true; // 標記下種子已經完成
+        stage = 1; // 進入第一階段
+        wateringCount = 0;
+        dustingCount = 0;
+        isWatering = true; // 重置為澆水階段
+        alert("已完成下種子，請進行澆水！");
       }
       
       if (action === '澆水') {
-        if (stage === 0) return alert("請先下種子！");
-        if (wateringCount >= stageDefs[stage].watering) return alert("已達本階段澆水次數，請進行除塵！");
-        wateringCount++;
+        if (!seedPlanted) {
+          return alert("請先下種子！");
+        }
         if (wateringCount >= stageDefs[stage].watering) {
-          alert("已完成本階段澆水，請進行除塵！");
+          return alert("已達本階段澆水次數，請進行除塵！");
+        }
+        if (!isWatering) {
+          return alert("請先除塵！");
+        }
+        wateringCount++;
+        isWatering = false; // 澆水完成，準備進入除塵階段
+        if (wateringCount >= stageDefs[stage].watering) {
+          alert("已完成澆水，請進行除塵！");
         }
       }
 
       if (action === '除塵') {
+        if (!seedPlanted) {
+          return alert("請先下種子！");
+        }
         if (wateringCount < stageDefs[stage].watering) {
           return alert("請先完成澆水！");
         }
-        if (dustingCount >= stageDefs[stage].dusting) return alert("已達本階段除塵次數！");
+        if (dustingCount >= stageDefs[stage].dusting) {
+          return alert("已達本階段除塵次數！");
+        }
+        if (isWatering) {
+          return alert("請先澆水！");
+        }
         dustingCount++;
+        isWatering = true; // 除塵完成，準備進入澆水階段
         if (dustingCount >= stageDefs[stage].dusting) {
           stage++; // 完成後跳到下一階段
           wateringCount = 0; // 重設澆水次數
