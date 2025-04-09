@@ -3,261 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>愛心種植計畫</title>
+  <title>愛心種植日記</title>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #fef3e7;
-      color: #5a5a5a;
-      text-align: center;
+      font-family: 'Noto Sans TC', sans-serif;
+      background: linear-gradient(#ffe6f0, #ffffff);
+      color: #333;
       padding: 20px;
     }
-
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff0f5;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 10px rgba(255, 192, 203, 0.4);
+    }
     h1 {
-      font-size: 2em;
-      color: #d2691e;
+      text-align: center;
+      color: #d63384;
     }
-
-    .stage-info {
-      font-size: 1.2em;
-      margin-top: 20px;
-      color: #333;
-    }
-
-    .btn-container {
-      margin-top: 30px;
-    }
-
     button {
       padding: 10px 20px;
-      font-size: 1em;
-      background-color: #ffcc66;
+      margin: 5px;
       border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 10px;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #ff9966;
-    }
-
-    .status {
-      margin-top: 20px;
-      font-size: 1.1em;
-      color: #444;
-    }
-
-    .clear-btn {
-      margin-top: 20px;
-      background-color: #ff6666;
+      border-radius: 12px;
+      background-color: #ff99cc;
       color: white;
+      cursor: pointer;
+      font-size: 16px;
     }
-
-    .clear-btn:hover {
-      background-color: #ff4d4d;
+    button:disabled {
+      background-color: #f5c6d6;
+      cursor: not-allowed;
     }
-
-    .action-times {
+    .log {
+      background: #fff;
+      padding: 10px;
       margin-top: 20px;
-      font-size: 1em;
-      color: #555;
-      text-align: left;
+      border-radius: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    .stage-info {
+      font-size: 16px;
+      margin: 10px 0;
     }
   </style>
 </head>
 <body>
+<div class="container">
+  <h1>愛心種植日記</h1>
+  <div class="stage-info" id="stageInfo">請點擊「下種子」開始</div>
+  <button id="plantBtn">下種子</button>
+  <button id="waterBtn" disabled>澆水</button>
+  <button id="dustBtn" disabled>除塵</button>
+  <button id="clearBtn">清除紀錄</button>
+  <div class="log" id="log"></div>
+</div>
 
-  <h1>愛心種植計畫</h1>
+<script>
+  const firebaseConfig = {
+    // 這裡請填上你自己的 Firebase 設定
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_BUCKET",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const recordRef = db.collection('heartPlanting').doc('sharedLog');
 
-  <div id="stage-info" class="stage-info">
-    <!-- 階段和次數顯示會在這裡更新 -->
-  </div>
+  const plantBtn = document.getElementById('plantBtn');
+  const waterBtn = document.getElementById('waterBtn');
+  const dustBtn = document.getElementById('dustBtn');
+  const logDiv = document.getElementById('log');
+  const stageInfo = document.getElementById('stageInfo');
+  const clearBtn = document.getElementById('clearBtn');
 
-  <div class="btn-container">
-    <button id="plant-seed" onclick="plantSeed()">下種子</button>
-    <button id="water" onclick="performAction('water')" disabled>澆水</button>
-    <button id="dust" onclick="performAction('dust')" disabled>除塵</button>
-  </div>
+  let logData = [];
 
-  <div class="status" id="status-message">
-    <!-- 顯示狀態訊息 -->
-  </div>
+  const stageRequirements = [1, 1, 5, 9];
 
-  <button class="clear-btn" onclick="clearProgress()">清除紀錄</button>
-
-  <div id="action-times" class="action-times">
-    <h3>動作記錄：</h3>
-    <!-- 顯示每次澆水和除塵的時間 -->
-  </div>
-
-  <script>
-    // 種植計畫的數據
-    let stage = 0;  // 當前階段
-    let wateringCount = 0;  // 當前澆水次數
-    let dustingCount = 0;  // 當前除塵次數
-    let seedPlanted = false;  // 是否已經下過種子
-    let actionPending = false;  // 是否需要等待另一個動作（澆水除塵交替）
-    let actionTimes = [];  // 儲存每次澆水或除塵的時間
-
-    // 定義每個階段的需求
-    const stageRequirements = [
-      { watering: 1, dusting: 1 },
-      { watering: 1, dusting: 1 },
-      { watering: 5, dusting: 5 },
-      { watering: 9, dusting: 9 }
-    ];
-
-    // 初始化頁面
-    window.onload = function() {
-      loadProgress();
+  async function loadLog() {
+    const doc = await recordRef.get();
+    if (doc.exists) {
+      logData = doc.data().log || [];
+      updateUI();
     }
+  }
 
-    // 設置當前階段、澆水、除塵次數
-    function updateStageInfo() {
-      const stageText = stage === 0 ? "尚未開始" :
-                        stage === 1 ? "第一階段" :
-                        stage === 2 ? "第二階段" :
-                        stage === 3 ? "第三階段" : "第四階段";
+  function getStage() {
+    if (logData.length === 0) return -1;
+    let water = 0, dust = 0, stage = 0;
+    for (let entry of logData.slice(1)) {
+      if (entry.action === '澆水') water++;
+      else if (entry.action === '除塵') dust++;
 
-      const wateringRequired = stageRequirements[stage].watering;
-      const dustingRequired = stageRequirements[stage].dusting;
-
-      document.getElementById("stage-info").textContent = 
-        `當前階段：${stageText}，澆水：${wateringCount}/${wateringRequired}，除塵：${dustingCount}/${dustingRequired}`;
-
-      if (actionTimes.length > 0) {
-        document.getElementById("status-message").textContent = `最新動作時間：${actionTimes[actionTimes.length - 1]}`;
+      if (water >= stageRequirements[stage] && dust >= stageRequirements[stage]) {
+        water -= stageRequirements[stage];
+        dust -= stageRequirements[stage];
+        stage++;
       }
     }
+    return stage;
+  }
 
-    // 載入進度
-    function loadProgress() {
-      const savedData = JSON.parse(localStorage.getItem("plantProgress"));
+  function getNextAction() {
+    if (logData.length === 0) return '下種子';
+    let actions = logData.slice(1).map(e => e.action);
+    return actions.length % 2 === 0 ? '澆水' : '除塵';
+  }
 
-      if (savedData) {
-        stage = savedData.stage;
-        wateringCount = savedData.wateringCount;
-        dustingCount = savedData.dustingCount;
-        seedPlanted = savedData.seedPlanted;
-        actionTimes = savedData.actionTimes || [];
-      }
+  function updateUI() {
+    logDiv.innerHTML = '';
+    logData.forEach((entry, index) => {
+      const p = document.createElement('p');
+      p.textContent = `${index === 0 ? '種子' : entry.action}：${entry.time}`;
+      logDiv.appendChild(p);
+    });
 
-      updateStageInfo();
-      toggleButtons();
+    const stage = getStage();
+    if (stage >= 4) {
+      stageInfo.textContent = `🎉 完成所有階段！`;
+      waterBtn.disabled = true;
+      dustBtn.disabled = true;
+      return;
     }
 
-    // 儲存進度
-    function saveProgress() {
-      const progressData = {
-        stage: stage,
-        wateringCount: wateringCount,
-        dustingCount: dustingCount,
-        seedPlanted: seedPlanted,
-        actionTimes: actionTimes
-      };
-      localStorage.setItem("plantProgress", JSON.stringify(progressData));
-    }
+    stageInfo.textContent = `第 ${stage + 1} 階段：澆水 ${countAction('澆水', stage)} / ${stageRequirements[stage]}，除塵 ${countAction('除塵', stage)} / ${stageRequirements[stage]}`;
+    const next = getNextAction();
 
-    // 執行澆水或除塵的動作
-    function performAction(action) {
-      if (!seedPlanted) {
-        alert("請先下種子！");
-        return;
-      }
+    plantBtn.disabled = logData.length > 0;
+    waterBtn.disabled = next !== '澆水';
+    dustBtn.disabled = next !== '除塵';
+  }
 
-      const currentTime = new Date().toLocaleString();
-      if (action === 'water' && wateringCount < stageRequirements[stage].watering) {
-        wateringCount++;
-        actionTimes.push(`澆水時間：${currentTime}`);
-        actionPending = true;
-        saveProgress();
-        updateStageInfo();
+  function countAction(type, currentStage) {
+    let water = 0, dust = 0, stage = 0;
+    for (let entry of logData.slice(1)) {
+      if (entry.action === '澆水') water++;
+      else if (entry.action === '除塵') dust++;
 
-        // 完成澆水後等待除塵
-        if (wateringCount === stageRequirements[stage].watering) {
-          alert("已完成澆水，請進行除塵！");
-          toggleButtons();
-        }
-      } 
-      else if (action === 'dust' && dustingCount < stageRequirements[stage].dusting) {
-        dustingCount++;
-        actionTimes.push(`除塵時間：${currentTime}`);
-        actionPending = false;
-        saveProgress();
-        updateStageInfo();
-
-        // 完成除塵後進入下一階段
-        if (dustingCount === stageRequirements[stage].dusting) {
-          stage++;
-          if (stage < 4) {
-            alert("已完成本階段，進入下一階段！");
-          } else {
-            alert("恭喜！你已完成所有階段！");
-          }
-          wateringCount = 0;
-          dustingCount = 0;
-          saveProgress();
-          updateStageInfo();
-          toggleButtons();
-        }
-      }
-
-      toggleButtons();
-    }
-
-    // 更新按鈕的啟用狀態
-    function toggleButtons() {
-      if (stage === 0) {
-        document.getElementById("plant-seed").disabled = false;
-        document.getElementById("water").disabled = true;
-        document.getElementById("dust").disabled = true;
-      } else if (stage === 1) {
-        // 第一階段的按鈕邏輯
-        document.getElementById("water").disabled = wateringCount >= stageRequirements[stage].watering;
-        document.getElementById("dust").disabled = wateringCount < stageRequirements[stage].watering || dustingCount >= stageRequirements[stage].dusting;
-      } else if (stage >= 2 && stage <= 3) {
-        // 第二階段及以後的按鈕邏輯
-        document.getElementById("water").disabled = wateringCount >= stageRequirements[stage].watering;
-        document.getElementById("dust").disabled = wateringCount < stageRequirements[stage].watering || dustingCount >= stageRequirements[stage].dusting;
-      } else {
-        document.getElementById("water").disabled = true;
-        document.getElementById("dust").disabled = true;
+      if (water >= stageRequirements[stage] && dust >= stageRequirements[stage]) {
+        if (stage === currentStage) break;
+        water -= stageRequirements[stage];
+        dust -= stageRequirements[stage];
+        stage++;
       }
     }
+    return type === '澆水' ? water : dust;
+  }
 
-    // 下種子
-    function plantSeed() {
-      if (seedPlanted) {
-        alert("已經下過種子，無法再次下種！");
-        return;
-      }
+  async function saveLog() {
+    await recordRef.set({ log: logData });
+    updateUI();
+  }
 
-      seedPlanted = true;
-      stage = 1;
-      wateringCount = 0;
-      dustingCount = 0;
-      actionPending = true;
-      actionTimes = [];
-      saveProgress();
-      updateStageInfo();
-      toggleButtons();
+  plantBtn.onclick = async () => {
+    const now = new Date().toLocaleString();
+    logData.push({ action: '下種子', time: now });
+    await saveLog();
+  };
+
+  waterBtn.onclick = async () => {
+    const now = new Date().toLocaleString();
+    logData.push({ action: '澆水', time: now });
+    await saveLog();
+  };
+
+  dustBtn.onclick = async () => {
+    const now = new Date().toLocaleString();
+    logData.push({ action: '除塵', time: now });
+    await saveLog();
+  };
+
+  clearBtn.onclick = async () => {
+    if (confirm('確定要清除所有紀錄嗎？')) {
+      logData = [];
+      await saveLog();
     }
+  };
 
-    // 清除紀錄
-    function clearProgress() {
-      localStorage.removeItem("plantProgress");
-      stage = 0;
-      wateringCount = 0;
-      dustingCount = 0;
-      seedPlanted = false;
-      actionPending = false;
-      actionTimes = [];
-      saveProgress();
-      updateStageInfo();
-      toggleButtons();
-    }
-  </script>
+  loadLog();
+</script>
 </body>
 </html>
