@@ -22,10 +22,12 @@
     const historyCollection = collection(db, "sharedPlantingHistory");
 
     let currentRole = "瑜榆"; // 默認角色，這裡應該由用戶選擇
+    let wateringCount = 0;
+    let dustingCount = 0;
+    let stage = 0; // 初始階段
 
     // 設置每個階段的進度要求
     const stageDefs = [
-      { watering: 0, dusting: 0 }, // Stage 0 (未開始)
       { watering: 1, dusting: 1 }, // Stage 1
       { watering: 1, dusting: 1 }, // Stage 2
       { watering: 5, dusting: 5 }, // Stage 3
@@ -34,34 +36,6 @@
 
     function getUserId() {
       return "anonymous";  // 這裡可以根據需求調整
-    }
-
-    function getStageAndProgress(records) {
-      records = [...records].sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
-      if (!records.some(r => r.action === '下種子')) return { stage: 0, wProgress: 0, dProgress: 0 };
-
-      let stage = 1;
-      let remaining = [...records].reverse();
-      let wProgress = 0, dProgress = 0;
-      for (let i = 1; i < stageDefs.length; i++) {
-        const req = stageDefs[i];
-        for (let rec of remaining) {
-          if (rec.action === '澆水' && wProgress < req.watering) {
-            wProgress++;
-          } else if (rec.action === '除塵' && wProgress >= req.watering && dProgress < req.dusting) {
-            dProgress++;
-          } else {
-            break;
-          }
-        }
-        if (wProgress === req.watering && dProgress === req.dusting) {
-          stage = i;
-          remaining = remaining.slice(wProgress + dProgress);
-        } else {
-          return { stage, wProgress, dProgress };
-        }
-      }
-      return { stage, wProgress, dProgress };
     }
 
     async function loadHistory() {
@@ -100,12 +74,9 @@
     function updateStageView(userName, records) {
       const stageDiv = document.getElementById(userName === '瑜榆' ? 'yuyu-stage' : 'coffee-stage');
       const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
-      const { stage, wProgress, dProgress } = getStageAndProgress(records);
-      let extra = '';
-      if (wProgress && dProgress) {
-        extra = `（澆水第 ${wProgress} 次，除塵第 ${dProgress} 次）`;
-      }
-      stageDiv.textContent = `🌟 當前階段：${stageNames[stage]}${extra}`;
+      const wateringReq = stageDefs[stage]?.watering || 0;
+      const dustingReq = stageDefs[stage]?.dusting || 0;
+      stageDiv.textContent = `當前階段：${stageNames[stage]}，澆水：${wateringCount}/${wateringReq}，除塵：${dustingCount}/${dustingReq}`;
     }
 
     window.setRole = function(role) {
@@ -114,17 +85,31 @@
     }
 
     window.addPlantingRecord = async function(action) {
-      const records = await getUserRecords();
-      const { stage, wProgress, dProgress } = getStageAndProgress(records);
+      if (action === '下種子' && stage > 0) {
+        return alert("已經下過種子，無法再次下種。");
+      }
+      
+      if (action === '澆水') {
+        if (stage === 0) return alert("請先下種子！");
+        if (wateringCount >= stageDefs[stage].watering) return alert("已達本階段澆水次數，請進行除塵！");
+        wateringCount++;
+        if (wateringCount >= stageDefs[stage].watering) {
+          alert("已完成本階段澆水，請進行除塵！");
+        }
+      }
 
-      if (action === '下種子') {
-        if (stage > 0) return alert("已經下過種子，無法再次下種。");
-      } else if (action === '澆水') {
-        if (wProgress === undefined || stage === 0) return alert("無法澆水，請先下種並依照順序進行。");
-        if (stageDefs[stage + 1]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
-      } else if (action === '除塵') {
-        if (dProgress === undefined || wProgress < stageDefs[stage + 1]?.watering) return alert("請先完成本階段所需澆水次數。");
-        if (stageDefs[stage + 1]?.dusting < dProgress) return alert("除塵次數已達上限，請等待下階段。");
+      if (action === '除塵') {
+        if (wateringCount < stageDefs[stage].watering) {
+          return alert("請先完成澆水！");
+        }
+        if (dustingCount >= stageDefs[stage].dusting) return alert("已達本階段除塵次數！");
+        dustingCount++;
+        if (dustingCount >= stageDefs[stage].dusting) {
+          stage++; // 完成後跳到下一階段
+          wateringCount = 0; // 重設澆水次數
+          dustingCount = 0;  // 重設除塵次數
+          alert(`進入下一階段：${["第一階段", "第二階段", "第三階段", "最終階段"][stage]}！`);
+        }
       }
 
       try {
@@ -155,12 +140,6 @@
         alert("⚠️ 無法清除紀錄，請檢查 Firestore 權限設定。");
       }
     };
-
-    async function getUserRecords() {
-      const q = query(historyCollection, orderBy("timestamp", "asc"));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => doc.data()).filter(d => d.user === getUserId() && d.role === currentRole);
-    }
 
     window.onload = function() {
       loadHistory();
@@ -247,9 +226,5 @@
   </div>
 
   <button onclick="clearHistory()">清除紀錄</button>
-
-  <script>
-    window.onload = loadHistory;
-  </script>
 </body>
 </html>
