@@ -2,259 +2,236 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>愛心種植計畫</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyC5VJ1cb_ihQSlfzQm8vLa-0exU5-YTrc0",
-      authDomain: "coffeesugar-planting.firebaseapp.com",
-      projectId: "coffeesugar-planting",
-      storageBucket: "coffeesugar-planting.appspot.com",
-      messagingSenderId: "1049930202443",
-      appId: "1:1049930202443:web:201becb988df55e12d7cce",
-      measurementId: "G-HDE40D5FSP"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const historyCollection = collection(db, "sharedPlantingHistory");
-
-    let currentRole = "瑜榆"; // 默認角色，這裡應該由用戶選擇
-    let wateringCount = 0;
-    let dustingCount = 0;
-    let stage = 0; // 初始階段
-    let seedPlanted = false; // 是否下過種子
-    let isWatering = true; // 是否正在澆水（用來確保澆水除塵交替進行）
-
-    // 設置每個階段的進度要求
-    const stageDefs = [
-      { watering: 1, dusting: 1 }, // Stage 1
-      { watering: 1, dusting: 1 }, // Stage 2
-      { watering: 5, dusting: 5 }, // Stage 3
-      { watering: 9, dusting: 9 }, // Stage 4
-    ];
-
-    function getUserId() {
-      return "anonymous";  // 這裡可以根據需求調整
-    }
-
-    async function loadHistory() {
-      const yuyuList = document.getElementById("yuyu-history");
-      const coffeeList = document.getElementById("coffee-history");
-      yuyuList.innerHTML = "";
-      coffeeList.innerHTML = "";
-
-      const yuyuRecords = [];
-      const coffeeRecords = [];
-
-      try {
-        const q = query(historyCollection, orderBy("timestamp", "desc"));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const li = document.createElement("li");
-          const date = data.timestamp?.toDate()?.toLocaleString() || '尚未同步';
-          li.textContent = `${data.user || '匿名'}：${data.action} - ${date}`;
-
-          if (data.role === "瑜榆") {
-            yuyuList.appendChild(li);
-            yuyuRecords.push(data);
-          } else if (data.role === "咖啡棠") {
-            coffeeList.appendChild(li);
-            coffeeRecords.push(data);
-          }
-        });
-        updateStageView('瑜榆', yuyuRecords);
-        updateStageView('咖啡棠', coffeeRecords);
-      } catch (err) {
-        alert("⚠️ 無法讀取紀錄，請檢查 Firestore 權限設定。");
-      }
-    }
-
-    function updateStageView(userName, records) {
-      const stageDiv = document.getElementById(userName === '瑜榆' ? 'yuyu-stage' : 'coffee-stage');
-      const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
-      const wateringReq = stageDefs[stage]?.watering || 0;
-      const dustingReq = stageDefs[stage]?.dusting || 0;
-      stageDiv.textContent = `當前階段：${stageNames[stage]}，澆水：${wateringCount}/${wateringReq}，除塵：${dustingCount}/${dustingReq}`;
-    }
-
-    window.setRole = function(role) {
-      currentRole = role;
-      loadHistory();
-    }
-
-    window.addPlantingRecord = async function(action) {
-      if (action === '下種子') {
-        if (seedPlanted) {
-          return alert("已經下過種子，無法再次下種。");
-        }
-        seedPlanted = true; // 標記下種子已經完成
-        stage = 1; // 進入第一階段
-        wateringCount = 0;
-        dustingCount = 0;
-        isWatering = true; // 重置為澆水階段
-        alert("已完成下種子，請進行澆水！");
-      }
-
-      // 澆水邏輯
-      if (action === '澆水') {
-        if (!seedPlanted) {
-          return alert("請先下種子！");
-        }
-        if (wateringCount >= stageDefs[stage].watering) {
-          return alert("已達本階段澆水次數，請進行除塵！");
-        }
-        if (!isWatering) {
-          return alert("請先除塵！");
-        }
-        wateringCount++;
-        isWatering = false; // 澆水完成，準備進入除塵階段
-        if (wateringCount >= stageDefs[stage].watering) {
-          alert("已完成澆水，請進行除塵！");
-        }
-      }
-
-      // 除塵邏輯
-      if (action === '除塵') {
-        if (!seedPlanted) {
-          return alert("請先下種子！");
-        }
-        if (wateringCount < stageDefs[stage].watering) {
-          return alert("請先完成澆水！");
-        }
-        if (dustingCount >= stageDefs[stage].dusting) {
-          return alert("已達本階段除塵次數！");
-        }
-        if (isWatering) {
-          return alert("請先澆水！");
-        }
-        dustingCount++;
-        isWatering = true; // 除塵完成，準備進入澆水階段
-        if (dustingCount >= stageDefs[stage].dusting) {
-          stage++; // 完成後跳到下一階段
-          wateringCount = 0; // 重設澆水次數
-          dustingCount = 0;  // 重設除塵次數
-          alert(`進入下一階段：${["第一階段", "第二階段", "第三階段", "最終階段"][stage]}！`);
-        }
-      }
-
-      try {
-        await addDoc(historyCollection, {
-          action,
-          user: getUserId(),
-          role: currentRole,
-          timestamp: serverTimestamp()
-        });
-        loadHistory();
-      } catch (err) {
-        alert("⚠️ 無法寫入資料庫，請檢查 Firestore 權限設定。");
-      }
-    };
-
-    window.clearHistory = async function() {
-      try {
-        const querySnapshot = await getDocs(historyCollection);
-        for (const docItem of querySnapshot.docs) {
-          const data = docItem.data();
-          // 確保只刪除當前選擇角色的紀錄
-          if (data.role === currentRole) {
-            await deleteDoc(doc(db, "sharedPlantingHistory", docItem.id));
-          }
-        }
-        loadHistory();
-      } catch (err) {
-        alert("⚠️ 無法清除紀錄，請檢查 Firestore 權限設定。");
-      }
-    };
-
-    window.onload = function() {
-      loadHistory();
-    };
-  </script>
   <style>
     body {
-      font-family: sans-serif;
-      padding: 2em;
-      background: #fffaf0;
-    }
-    h1 {
-      color: #d2691e;
+      font-family: Arial, sans-serif;
+      background-color: #fef3e7;
+      color: #5a5a5a;
       text-align: center;
+      padding: 20px;
     }
+
+    h1 {
+      font-size: 2em;
+      color: #d2691e;
+    }
+
+    .stage-info {
+      font-size: 1.2em;
+      margin-top: 20px;
+      color: #333;
+    }
+
+    .btn-container {
+      margin-top: 30px;
+    }
+
     button {
-      margin: 0.5em;
-      padding: 1em 2em;
+      padding: 10px 20px;
       font-size: 1em;
-      background-color: #f5deb3;
+      background-color: #ffcc66;
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      margin: 10px;
+      transition: background-color 0.3s;
     }
+
     button:hover {
-      background-color: #deb887;
+      background-color: #ff9966;
     }
-    ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    li {
-      margin: 0.5em 0;
-    }
-    #logout-btn {
-      display: none;
-    }
-    #status {
-      margin-top: 1em;
-      color: #444;
+
+    .status {
+      margin-top: 20px;
       font-size: 1.1em;
-      text-align: center;
+      color: #444;
     }
-    #history-section {
-      display: flex;
-      justify-content: space-around;
+
+    .clear-btn {
+      margin-top: 20px;
+      background-color: #ff6666;
+      color: white;
     }
-    #yuyu-history, #coffee-history {
-      width: 40%;
+
+    .clear-btn:hover {
+      background-color: #ff4d4d;
     }
+
   </style>
 </head>
 <body>
+
   <h1>愛心種植計畫</h1>
-  <div>
-    <button onclick="setRole('瑜榆')">瑜榆</button>
-    <button onclick="setRole('咖啡棠')">咖啡棠</button>
-  </div>
-  <div id="status"></div>
 
-  <div id="history-section">
-    <div>
-      <h3>瑜榆紀錄</h3>
-      <ul id="yuyu-history"></ul>
-    </div>
-    <div>
-      <h3>咖啡棠紀錄</h3>
-      <ul id="coffee-history"></ul>
-    </div>
+  <div id="stage-info" class="stage-info">
+    <!-- 階段和次數顯示會在這裡更新 -->
   </div>
 
-  <div id="yuyu-stage">
-    <!-- 顯示瑜榆當前進度 -->
-  </div>
-  <div id="coffee-stage">
-    <!-- 顯示咖啡棠當前進度 -->
-  </div>
-
-  <div>
-    <button onclick="addPlantingRecord('下種子')">下種子</button>
-    <button onclick="addPlantingRecord('澆水')">澆水</button>
-    <button onclick="addPlantingRecord('除塵')">除塵</button>
+  <div class="btn-container">
+    <button id="plant-seed" onclick="plantSeed()">下種子</button>
+    <button id="water" onclick="performAction('water')" disabled>澆水</button>
+    <button id="dust" onclick="performAction('dust')" disabled>除塵</button>
   </div>
 
-  <div id="logout-btn">
-    <button onclick="clearHistory()">清除紀錄</button>
+  <div class="status" id="status-message">
+    <!-- 顯示狀態訊息 -->
   </div>
+
+  <button class="clear-btn" onclick="clearProgress()">清除紀錄</button>
+
+  <script>
+    // 種植計畫的數據
+    let stage = 0;  // 當前階段
+    let wateringCount = 0;  // 當前澆水次數
+    let dustingCount = 0;  // 當前除塵次數
+    let seedPlanted = false;  // 是否已經下過種子
+    let actionPending = false;  // 是否需要等待另一個動作（澆水除塵交替）
+
+    // 定義每個階段的需求
+    const stageRequirements = [
+      { watering: 1, dusting: 1 },
+      { watering: 1, dusting: 1 },
+      { watering: 5, dusting: 5 },
+      { watering: 9, dusting: 9 }
+    ];
+
+    // 初始化頁面
+    window.onload = function() {
+      loadProgress();
+    }
+
+    // 設置當前階段、澆水、除塵次數
+    function updateStageInfo() {
+      const stageText = stage === 0 ? "尚未開始" :
+                        stage === 1 ? "第一階段" :
+                        stage === 2 ? "第二階段" :
+                        stage === 3 ? "第三階段" : "第四階段";
+
+      const wateringRequired = stageRequirements[stage].watering;
+      const dustingRequired = stageRequirements[stage].dusting;
+
+      document.getElementById("stage-info").textContent = 
+        `當前階段：${stageText}，澆水：${wateringCount}/${wateringRequired}，除塵：${dustingCount}/${dustingRequired}`;
+    }
+
+    // 載入進度
+    function loadProgress() {
+      const savedData = JSON.parse(localStorage.getItem("plantProgress"));
+
+      if (savedData) {
+        stage = savedData.stage;
+        wateringCount = savedData.wateringCount;
+        dustingCount = savedData.dustingCount;
+        seedPlanted = savedData.seedPlanted;
+      }
+
+      updateStageInfo();
+      toggleButtons();
+    }
+
+    // 儲存進度
+    function saveProgress() {
+      const progressData = {
+        stage: stage,
+        wateringCount: wateringCount,
+        dustingCount: dustingCount,
+        seedPlanted: seedPlanted
+      };
+      localStorage.setItem("plantProgress", JSON.stringify(progressData));
+    }
+
+    // 執行澆水或除塵的動作
+    function performAction(action) {
+      if (!seedPlanted) {
+        alert("請先下種子！");
+        return;
+      }
+
+      // 當前需要交替的動作
+      if (action === 'water' && wateringCount < stageRequirements[stage].watering) {
+        wateringCount++;
+        actionPending = true;
+        saveProgress();
+        updateStageInfo();
+
+        // 完成澆水後等待除塵
+        if (wateringCount === stageRequirements[stage].watering) {
+          alert("已完成澆水，請進行除塵！");
+          toggleButtons();
+        }
+      } 
+      else if (action === 'dust' && dustingCount < stageRequirements[stage].dusting) {
+        dustingCount++;
+        actionPending = false;
+        saveProgress();
+        updateStageInfo();
+
+        // 完成除塵後進入下一階段
+        if (dustingCount === stageRequirements[stage].dusting) {
+          stage++;
+          if (stage < 4) {
+            alert("已完成本階段，進入下一階段！");
+          } else {
+            alert("恭喜！你已完成所有階段！");
+          }
+          wateringCount = 0;
+          dustingCount = 0;
+          saveProgress();
+          updateStageInfo();
+          toggleButtons();
+        }
+      }
+
+      toggleButtons();
+    }
+
+    // 更新按鈕的啟用狀態
+    function toggleButtons() {
+      if (stage === 0) {
+        document.getElementById("plant-seed").disabled = false;
+        document.getElementById("water").disabled = true;
+        document.getElementById("dust").disabled = true;
+      } else if (stage >= 1 && stage <= 3) {
+        document.getElementById("water").disabled = actionPending || wateringCount >= stageRequirements[stage].watering;
+        document.getElementById("dust").disabled = !actionPending || dustingCount >= stageRequirements[stage].dusting;
+      } else {
+        document.getElementById("water").disabled = true;
+        document.getElementById("dust").disabled = true;
+      }
+    }
+
+    // 下種子
+    function plantSeed() {
+      if (seedPlanted) {
+        alert("已經下過種子，無法再次下種！");
+        return;
+      }
+
+      seedPlanted = true;
+      stage = 1;
+      wateringCount = 0;
+      dustingCount = 0;
+      actionPending = true;
+      saveProgress();
+      updateStageInfo();
+      toggleButtons();
+    }
+
+    // 清除紀錄
+    function clearProgress() {
+      localStorage.removeItem("plantProgress");
+      stage = 0;
+      wateringCount = 0;
+      dustingCount = 0;
+      seedPlanted = false;
+      actionPending = false;
+      saveProgress();
+      updateStageInfo();
+      toggleButtons();
+    }
+
+  </script>
 </body>
 </html>
