@@ -13,6 +13,19 @@
       text-align: center;
       padding: 30px;
     }
+    .farm {
+      display: inline-block;
+      vertical-align: top;
+      width: 45%;
+      margin: 0 2%;
+      background: #fff8f8;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 8px #f3c4ce;
+    }
+    h2 {
+      color: #e18aaa;
+    }
     button {
       padding: 10px 20px;
       margin: 10px;
@@ -27,16 +40,9 @@
       background-color: #ddd;
       cursor: not-allowed;
     }
-    #log {
-      margin-top: 30px;
+    .log {
+      margin-top: 20px;
       text-align: left;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      background: #fff8f8;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 0 8px #f3c4ce;
     }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -45,143 +51,158 @@
 
 <body>
   <h1>🌸 愛心種植計畫 🌸</h1>
-  <div>
-    <button id="plantSeed">🌱 下種子</button>
-    <button id="water" disabled>💧 澆水</button>
-    <button id="dust" disabled>🧼 除塵</button>
-    <button id="clear">🗑 清除紀錄</button>
+  <div class="farm" id="farm-yuyu">
+    <h2>瑜榆的愛心農場</h2>
+    <div>
+      <button class="plantSeed">🌱 下種子</button>
+      <button class="water" disabled>💧 澆水</button>
+      <button class="dust" disabled>🧼 除塵</button>
+      <button class="clear">🗑 清除紀錄</button>
+    </div>
+    <div class="status"></div>
+    <div class="log"></div>
   </div>
-  <div id="status"></div>
-  <div id="log"></div>
+  <div class="farm" id="farm-coffee">
+    <h2>咖啡棠的愛心農場</h2>
+    <div>
+      <button class="plantSeed">🌱 下種子</button>
+      <button class="water" disabled>💧 澆水</button>
+      <button class="dust" disabled>🧼 除塵</button>
+      <button class="clear">🗑 清除紀錄</button>
+    </div>
+    <div class="status"></div>
+    <div class="log"></div>
+  </div>
 
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyC5VJ1cb_ihQSlfzQm8vLa-0exU5-YTrc0",
       authDomain: "coffeesugar-planting.firebaseapp.com",
       projectId: "coffeesugar-planting",
-      storageBucket: "coffeesugar-planting.appspot.com",
-      messagingSenderId: "1049930202443",
-      appId: "1:1049930202443:web:exampleappid"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const recordRef = db.collection('heart_planting').doc('record');
-
-    const seedBtn = document.getElementById('plantSeed');
-    const waterBtn = document.getElementById('water');
-    const dustBtn = document.getElementById('dust');
-    const clearBtn = document.getElementById('clear');
-    const logDiv = document.getElementById('log');
-    const statusDiv = document.getElementById('status');
 
     const stageLimits = [1, 1, 5, 9];
 
-    let state = {
-      seeded: false,
-      stage: 0,
-      progress: 0,
-      log: [],
-      nextAction: 'water'
-    };
+    function setupFarm(farmId, docId) {
+      const container = document.getElementById(farmId);
+      const plantSeed = container.querySelector('.plantSeed');
+      const water = container.querySelector('.water');
+      const dust = container.querySelector('.dust');
+      const clear = container.querySelector('.clear');
+      const status = container.querySelector('.status');
+      const logDiv = container.querySelector('.log');
 
-    function updateUI() {
-      if (!state.seeded) {
-        seedBtn.disabled = false;
-        waterBtn.disabled = true;
-        dustBtn.disabled = true;
-        statusDiv.innerText = '請先下種子';
-      } else {
-        seedBtn.disabled = true;
-        const isWater = state.nextAction === 'water';
-        waterBtn.disabled = !isWater;
-        dustBtn.disabled = isWater;
-        const stageText = `目前為第 ${state.stage + 1} 階段，第 ${Math.floor(state.progress / 2) + 1} 次 ${isWater ? '澆水' : '除塵'}`;
-        statusDiv.innerText = stageText;
-      }
-      renderLog();
-    }
-
-    function renderLog() {
-      logDiv.innerHTML = '<h3>紀錄：</h3>' + (state.log.length ? state.log.map(e => `<div>【${e.action}】第${e.stage + 1}階段，第${e.count}次 - ${e.time}</div>`).join('') : '無');
-    }
-
-    async function saveState() {
-      await recordRef.set(state);
-    }
-
-    function logAction(action) {
-      const now = new Date().toLocaleString();
-      const entry = {
-        action,
-        stage: state.stage,
-        count: Math.floor(state.progress / 2) + 1,
-        time: now
-      };
-      state.log.push(entry);
-    }
-
-    seedBtn.onclick = async () => {
-      if (state.seeded) return; // 防止重複下種子
-      state = {
-        seeded: true,
-        stage: 0,
-        progress: 0,
-        log: [],
-        nextAction: 'water'
-      };
-      logAction('下種子');
-      await saveState();
-      updateUI();
-    };
-
-    waterBtn.onclick = async () => {
-      if (!state.seeded || state.nextAction !== 'water') return;
-      logAction('澆水');
-      state.progress++;
-      state.nextAction = 'dust';
-      await checkProgress();
-    };
-
-    dustBtn.onclick = async () => {
-      if (!state.seeded || state.nextAction !== 'dust') return;
-      logAction('除塵');
-      state.progress++;
-      state.nextAction = 'water';
-      await checkProgress();
-    };
-
-    async function checkProgress() {
-      const limit = stageLimits[state.stage] * 2;
-      if (state.progress >= limit) {
-        state.stage++;
-        state.progress = 0;
-      }
-      await saveState();
-      updateUI();
-    }
-
-    clearBtn.onclick = async () => {
-      await recordRef.delete();
-      state = {
+      let state = {
         seeded: false,
         stage: 0,
         progress: 0,
         log: [],
         nextAction: 'water'
       };
-      updateUI();
-    };
 
-    async function init() {
-      const doc = await recordRef.get();
-      if (doc.exists) {
-        state = doc.data();
+      const recordRef = db.collection('heart_planting').doc(docId);
+
+      function updateUI() {
+        plantSeed.disabled = state.seeded;
+        water.disabled = !(state.seeded && state.nextAction === 'water');
+        dust.disabled = !(state.seeded && state.nextAction === 'dust');
+
+        if (!state.seeded) {
+          status.innerText = '請先下種子';
+        } else {
+          status.innerText = `目前為第 ${state.stage + 1} 階段，第 ${Math.floor(state.progress / 2) + 1} 次 ${state.nextAction === 'water' ? '澆水' : '除塵'}`;
+        }
+
+        logDiv.innerHTML = '<h3>紀錄：</h3>' + (state.log.length ? state.log.map(e => `【${e.action}】第${e.stage + 1}階段，第${e.count}次 - ${e.time}`).reverse().join('<br>') : '無');
       }
-      updateUI();
+
+      function logAction(action) {
+        const now = new Date().toLocaleString();
+        const entry = {
+          action,
+          stage: state.stage,
+          count: Math.floor(state.progress / 2) + 1,
+          time: now
+        };
+        state.log.push(entry);
+      }
+
+      async function saveState() {
+        await recordRef.set(state);
+      }
+
+      plantSeed.onclick = async () => {
+        if (state.seeded) return;
+        state = {
+          seeded: true,
+          stage: 0,
+          progress: 0,
+          log: [],
+          nextAction: 'water'
+        };
+        logAction('下種子');
+        await saveState();
+        updateUI();
+      };
+
+      water.onclick = async () => {
+        if (!state.seeded || state.nextAction !== 'water') return;
+        logAction('澆水');
+        state.progress++;
+        state.nextAction = 'dust';
+        await checkProgress();
+      };
+
+      dust.onclick = async () => {
+        if (!state.seeded || state.nextAction !== 'dust') return;
+        logAction('除塵');
+        state.progress++;
+        state.nextAction = 'water';
+        await checkProgress();
+      };
+
+      async function checkProgress() {
+        const limit = stageLimits[state.stage] * 2;
+        if (state.progress >= limit) {
+          if (state.stage < stageLimits.length - 1) {
+            state.stage++;
+            state.progress = 0;
+          } else {
+            // 已完成所有階段
+            state.nextAction = 'done';
+            water.disabled = true;
+            dust.disabled = true;
+          }
+        }
+        await saveState();
+        updateUI();
+      }
+
+      clear.onclick = async () => {
+        await recordRef.delete();
+        state = {
+          seeded: false,
+          stage: 0,
+          progress: 0,
+          log: [],
+          nextAction: 'water'
+        };
+        updateUI();
+      };
+
+      async function init() {
+        const doc = await recordRef.get();
+        if (doc.exists) state = doc.data();
+        updateUI();
+      }
+
+      init();
     }
 
-    init();
+    setupFarm('farm-yuyu', 'record_yuyu');
+    setupFarm('farm-coffee', 'record_coffee');
   </script>
 </body>
 
