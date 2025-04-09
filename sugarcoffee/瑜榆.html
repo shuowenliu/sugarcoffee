@@ -22,9 +22,16 @@
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 0 8px #f3c4ce;
+      position: relative;
     }
-    h2 {
+    .farm img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+    }
+    .farm h2 {
       color: #e18aaa;
+      margin-top: 10px;
     }
     button {
       padding: 10px 20px;
@@ -40,9 +47,20 @@
       background-color: #ddd;
       cursor: not-allowed;
     }
+    .status {
+      margin-top: 10px;
+      font-size: 1.1rem;
+      color: #e18aaa;
+    }
     .log {
       margin-top: 20px;
       text-align: left;
+    }
+    @media (max-width: 768px) {
+      .farm {
+        width: 90%;
+        margin: 10px auto;
+      }
     }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -52,6 +70,7 @@
 <body>
   <h1>🌸 愛心種植計畫 🌸</h1>
   <div class="farm" id="farm-yuyu">
+    <img src="https://www.example.com/yuyu-couple-image.jpg" alt="瑜榆的愛心農場">
     <h2>瑜榆的愛心農場</h2>
     <div>
       <button class="plantSeed">🌱 下種子</button>
@@ -63,6 +82,7 @@
     <div class="log"></div>
   </div>
   <div class="farm" id="farm-coffee">
+    <img src="https://www.example.com/coffee-couple-image.jpg" alt="咖啡棠的愛心農場">
     <h2>咖啡棠的愛心農場</h2>
     <div>
       <button class="plantSeed">🌱 下種子</button>
