@@ -59,6 +59,12 @@
       background-color: #ff4d4d;
     }
 
+    .action-times {
+      margin-top: 20px;
+      font-size: 1em;
+      color: #555;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -81,6 +87,11 @@
 
   <button class="clear-btn" onclick="clearProgress()">清除紀錄</button>
 
+  <div id="action-times" class="action-times">
+    <h3>動作記錄：</h3>
+    <!-- 顯示每次澆水和除塵的時間 -->
+  </div>
+
   <script>
     // 種植計畫的數據
     let stage = 0;  // 當前階段
@@ -88,7 +99,7 @@
     let dustingCount = 0;  // 當前除塵次數
     let seedPlanted = false;  // 是否已經下過種子
     let actionPending = false;  // 是否需要等待另一個動作（澆水除塵交替）
-    let actionTime = '';  // 儲存每次動作的時間
+    let actionTimes = [];  // 儲存每次澆水或除塵的時間
 
     // 定義每個階段的需求
     const stageRequirements = [
@@ -116,8 +127,8 @@
       document.getElementById("stage-info").textContent = 
         `當前階段：${stageText}，澆水：${wateringCount}/${wateringRequired}，除塵：${dustingCount}/${dustingRequired}`;
 
-      if (actionTime) {
-        document.getElementById("status-message").textContent = `最新動作時間：${actionTime}`;
+      if (actionTimes.length > 0) {
+        document.getElementById("status-message").textContent = `最新動作時間：${actionTimes[actionTimes.length - 1]}`;
       }
     }
 
@@ -130,6 +141,7 @@
         wateringCount = savedData.wateringCount;
         dustingCount = savedData.dustingCount;
         seedPlanted = savedData.seedPlanted;
+        actionTimes = savedData.actionTimes || [];
       }
 
       updateStageInfo();
@@ -142,7 +154,8 @@
         stage: stage,
         wateringCount: wateringCount,
         dustingCount: dustingCount,
-        seedPlanted: seedPlanted
+        seedPlanted: seedPlanted,
+        actionTimes: actionTimes
       };
       localStorage.setItem("plantProgress", JSON.stringify(progressData));
     }
@@ -154,11 +167,10 @@
         return;
       }
 
-      // 當前需要交替的動作
       const currentTime = new Date().toLocaleString();
       if (action === 'water' && wateringCount < stageRequirements[stage].watering) {
         wateringCount++;
-        actionTime = `澆水時間：${currentTime}`;
+        actionTimes.push(`澆水時間：${currentTime}`);
         actionPending = true;
         saveProgress();
         updateStageInfo();
@@ -171,7 +183,7 @@
       } 
       else if (action === 'dust' && dustingCount < stageRequirements[stage].dusting) {
         dustingCount++;
-        actionTime = `除塵時間：${currentTime}`;
+        actionTimes.push(`除塵時間：${currentTime}`);
         actionPending = false;
         saveProgress();
         updateStageInfo();
@@ -201,9 +213,14 @@
         document.getElementById("plant-seed").disabled = false;
         document.getElementById("water").disabled = true;
         document.getElementById("dust").disabled = true;
-      } else if (stage >= 1 && stage <= 3) {
-        document.getElementById("water").disabled = actionPending || wateringCount >= stageRequirements[stage].watering;
-        document.getElementById("dust").disabled = !actionPending || dustingCount >= stageRequirements[stage].dusting;
+      } else if (stage === 1) {
+        // 第一階段的按鈕邏輯
+        document.getElementById("water").disabled = wateringCount >= stageRequirements[stage].watering;
+        document.getElementById("dust").disabled = wateringCount < stageRequirements[stage].watering || dustingCount >= stageRequirements[stage].dusting;
+      } else if (stage >= 2 && stage <= 3) {
+        // 第二階段及以後的按鈕邏輯
+        document.getElementById("water").disabled = wateringCount >= stageRequirements[stage].watering;
+        document.getElementById("dust").disabled = wateringCount < stageRequirements[stage].watering || dustingCount >= stageRequirements[stage].dusting;
       } else {
         document.getElementById("water").disabled = true;
         document.getElementById("dust").disabled = true;
@@ -222,6 +239,7 @@
       wateringCount = 0;
       dustingCount = 0;
       actionPending = true;
+      actionTimes = [];
       saveProgress();
       updateStageInfo();
       toggleButtons();
@@ -235,11 +253,11 @@
       dustingCount = 0;
       seedPlanted = false;
       actionPending = false;
+      actionTimes = [];
       saveProgress();
       updateStageInfo();
       toggleButtons();
     }
-
   </script>
 </body>
 </html>
