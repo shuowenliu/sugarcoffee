@@ -215,43 +215,42 @@
     #history-section {
       display: flex;
       justify-content: space-around;
-      margin-top: 2em;
     }
-    .history-column {
-      width: 45%;
-      background: #fff;
-      border-radius: 8px;
-      padding: 1em;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .stage {
-      margin-bottom: 1em;
-      color: #b22222;
+    #yuyu-history, #coffee-history {
+      width: 40%;
     }
   </style>
 </head>
 <body>
   <h1>愛心種植計畫</h1>
-  <div id="status">歡迎使用！</div>
+  <div>
+    <button onclick="setRole('瑜榆')">瑜榆</button>
+    <button onclick="setRole('咖啡棠')">咖啡棠</button>
+  </div>
+  <div id="status"></div>
 
   <div id="history-section">
-    <div class="history-column">
+    <div>
       <h3>瑜榆紀錄</h3>
-      <div id="yuyu-stage" class="stage"></div>
       <ul id="yuyu-history"></ul>
-      <button onclick="addPlantingRecord('下種子')">下種子</button>
-      <button onclick="addPlantingRecord('澆水')">澆水</button>
-      <button onclick="addPlantingRecord('除塵')">除塵</button>
     </div>
-
-    <div class="history-column">
+    <div>
       <h3>咖啡棠紀錄</h3>
-      <div id="coffee-stage" class="stage"></div>
       <ul id="coffee-history"></ul>
-      <button onclick="addPlantingRecord('下種子')">下種子</button>
-      <button onclick="addPlantingRecord('澆水')">澆水</button>
-      <button onclick="addPlantingRecord('除塵')">除塵</button>
     </div>
+  </div>
+
+  <div id="yuyu-stage">
+    <!-- 顯示瑜榆當前進度 -->
+  </div>
+  <div id="coffee-stage">
+    <!-- 顯示咖啡棠當前進度 -->
+  </div>
+
+  <div>
+    <button onclick="addPlantingRecord('下種子')">下種子</button>
+    <button onclick="addPlantingRecord('澆水')">澆水</button>
+    <button onclick="addPlantingRecord('除塵')">除塵</button>
   </div>
 
   <div id="logout-btn">
