@@ -222,4 +222,36 @@
       text-align: center;
       font-weight: bold;
       margin-bottom: 0.5em;
-      color:
+      color: #3a3a3a;
+    }
+  </style>
+</head>
+<body>
+  <h1>愛心種植計畫</h1>
+  <button onclick="setRole('瑜榆')">選擇瑜榆</button>
+  <button onclick="setRole('咖啡棠')">選擇咖啡棠</button>
+
+  <div id="status"></div>
+
+  <div id="history-section">
+    <div class="history-column">
+      <h3>瑜榆紀錄</h3>
+      <div id="yuyu-stage" class="stage">🌟 當前階段：尚未開始</div>
+      <ul id="yuyu-history"></ul>
+    </div>
+    <div class="history-column">
+      <h3>咖啡棠紀錄</h3>
+      <div id="coffee-stage" class="stage">🌟 當前階段：尚未開始</div>
+      <ul id="coffee-history"></ul>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 1em;">
+    <button onclick="addPlantingRecord('下種子')">下種子</button>
+    <button onclick="addPlantingRecord('澆水')">澆水</button>
+    <button onclick="addPlantingRecord('除塵')">除塵</button>
+    <button onclick="clearHistory()">清除紀錄</button>
+  </div>
+
+</body>
+</html>
