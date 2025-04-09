@@ -120,7 +120,7 @@
       if (action === '下種子') {
         if (stage > 0) return alert("已經下過種子，無法再次下種。");
       } else if (action === '澆水') {
-        if (wProgress === undefined) return alert("無法澆水，請先下種並依照順序進行。");
+        if (wProgress === undefined || stage === 0) return alert("無法澆水，請先下種並依照順序進行。");
         if (stageDefs[stage + 1]?.watering < wProgress) return alert("澆水次數已達上限，請進行除塵或等待下階段。");
       } else if (action === '除塵') {
         if (dProgress === undefined || wProgress < stageDefs[stage + 1]?.watering) return alert("請先完成本階段所需澆水次數。");
@@ -212,27 +212,19 @@
     .history-column {
       width: 45%;
       background: #fff;
+      border-radius: 8px;
       padding: 1em;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
-    }
-    .history-column h3 {
-      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     .stage {
-      text-align: center;
-      font-weight: bold;
-      margin-bottom: 0.5em;
-      color: #3a3a3a;
+      margin-bottom: 1em;
+      color: #b22222;
     }
   </style>
 </head>
 <body>
   <h1>愛心種植計畫</h1>
-  <button onclick="setRole('瑜榆')">選擇瑜榆</button>
-  <button onclick="setRole('咖啡棠')">選擇咖啡棠</button>
-
-  <div id="status"></div>
+  <div id="status">歡迎使用！</div>
 
   <div id="history-section">
     <div class="history-column">
