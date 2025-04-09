@@ -98,7 +98,8 @@
         isWatering = true; // 重置為澆水階段
         alert("已完成下種子，請進行澆水！");
       }
-      
+
+      // 澆水邏輯
       if (action === '澆水') {
         if (!seedPlanted) {
           return alert("請先下種子！");
@@ -116,6 +117,7 @@
         }
       }
 
+      // 除塵邏輯
       if (action === '除塵') {
         if (!seedPlanted) {
           return alert("請先下種子！");
@@ -252,6 +254,8 @@
     </div>
   </div>
 
-  <button onclick="clearHistory()">清除紀錄</button>
+  <div id="logout-btn">
+    <button onclick="clearHistory()">清除紀錄</button>
+  </div>
 </body>
 </html>
