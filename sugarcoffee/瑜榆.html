@@ -88,6 +88,7 @@
     let dustingCount = 0;  // 當前除塵次數
     let seedPlanted = false;  // 是否已經下過種子
     let actionPending = false;  // 是否需要等待另一個動作（澆水除塵交替）
+    let actionTime = '';  // 儲存每次動作的時間
 
     // 定義每個階段的需求
     const stageRequirements = [
@@ -114,6 +115,10 @@
 
       document.getElementById("stage-info").textContent = 
         `當前階段：${stageText}，澆水：${wateringCount}/${wateringRequired}，除塵：${dustingCount}/${dustingRequired}`;
+
+      if (actionTime) {
+        document.getElementById("status-message").textContent = `最新動作時間：${actionTime}`;
+      }
     }
 
     // 載入進度
@@ -150,8 +155,10 @@
       }
 
       // 當前需要交替的動作
+      const currentTime = new Date().toLocaleString();
       if (action === 'water' && wateringCount < stageRequirements[stage].watering) {
         wateringCount++;
+        actionTime = `澆水時間：${currentTime}`;
         actionPending = true;
         saveProgress();
         updateStageInfo();
@@ -164,6 +171,7 @@
       } 
       else if (action === 'dust' && dustingCount < stageRequirements[stage].dusting) {
         dustingCount++;
+        actionTime = `除塵時間：${currentTime}`;
         actionPending = false;
         saveProgress();
         updateStageInfo();
