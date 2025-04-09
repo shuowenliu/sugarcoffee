@@ -38,30 +38,30 @@
 
     function getStageAndProgress(records) {
       records = [...records].sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
-      if (!records.some(r => r.action === '下種子')) return { stage: 0 };
+      if (!records.some(r => r.action === '下種子')) return { stage: 0, wProgress: 0, dProgress: 0 };
 
       let stage = 1;
       let remaining = [...records].reverse();
+      let wProgress = 0, dProgress = 0;
       for (let i = 1; i < stageDefs.length; i++) {
         const req = stageDefs[i];
-        let wCount = 0, dCount = 0;
         for (let rec of remaining) {
-          if (rec.action === '澆水' && wCount < req.watering) {
-            wCount++;
-          } else if (rec.action === '除塵' && wCount >= req.watering && dCount < req.dusting) {
-            dCount++;
+          if (rec.action === '澆水' && wProgress < req.watering) {
+            wProgress++;
+          } else if (rec.action === '除塵' && wProgress >= req.watering && dProgress < req.dusting) {
+            dProgress++;
           } else {
             break;
           }
         }
-        if (wCount === req.watering && dCount === req.dusting) {
+        if (wProgress === req.watering && dProgress === req.dusting) {
           stage = i;
-          remaining = remaining.slice(wCount + dCount);
+          remaining = remaining.slice(wProgress + dProgress);
         } else {
-          return { stage, wProgress: wCount + 1, dProgress: dCount + 1 };
+          return { stage, wProgress, dProgress };
         }
       }
-      return { stage };
+      return { stage, wProgress, dProgress };
     }
 
     async function loadHistory() {
@@ -237,20 +237,27 @@
   <div id="history-section">
     <div class="history-column">
       <h3>瑜榆紀錄</h3>
-      <div id="yuyu-stage" class="stage">🌟 當前階段：尚未開始</div>
+      <div id="yuyu-stage" class="stage"></div>
       <ul id="yuyu-history"></ul>
+      <button onclick="addPlantingRecord('下種子')">下種子</button>
+      <button onclick="addPlantingRecord('澆水')">澆水</button>
+      <button onclick="addPlantingRecord('除塵')">除塵</button>
     </div>
+
     <div class="history-column">
       <h3>咖啡棠紀錄</h3>
-      <div id="coffee-stage" class="stage">🌟 當前階段：尚未開始</div>
+      <div id="coffee-stage" class="stage"></div>
       <ul id="coffee-history"></ul>
+      <button onclick="addPlantingRecord('下種子')">下種子</button>
+      <button onclick="addPlantingRecord('澆水')">澆水</button>
+      <button onclick="addPlantingRecord('除塵')">除塵</button>
     </div>
   </div>
 
-  <button onclick="addPlantingRecord('下種子')">下種子</button>
-  <button onclick="addPlantingRecord('澆水')">澆水</button>
-  <button onclick="addPlantingRecord('除塵')">除塵</button>
-
   <button onclick="clearHistory()">清除紀錄</button>
+
+  <script>
+    window.onload = loadHistory;
+  </script>
 </body>
 </html>
