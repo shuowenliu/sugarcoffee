@@ -2,99 +2,10 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>愛心種植計畫</title>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f4f8fb;
-      margin: 0;
-      padding: 0;
-      color: #333;
-    }
-    header {
-      background-color: #6fa3f7;
-      color: white;
-      padding: 10px 0;
-      text-align: center;
-      font-size: 24px;
-    }
-    #container {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 30px;
-    }
-    .section {
-      width: 45%;
-      background-color: #fff;
-      padding: 20px;
-      margin: 10px;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .section h2 {
-      text-align: center;
-      font-size: 20px;
-      color: #333;
-    }
-    .section button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      background-color: #6fa3f7;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    .section button:hover {
-      background-color: #5a8ce1;
-    }
-    .section p {
-      font-size: 16px;
-      text-align: center;
-      color: #555;
-    }
-    .status {
-      display: flex;
-      justify-content: space-between;
-      font-size: 16px;
-      color: #333;
-    }
-    .history-list {
-      list-style: none;
-      padding: 0;
-    }
-    .history-list li {
-      background-color: #f0f4f8;
-      margin: 5px 0;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 14px;
-    }
-    .auth-buttons {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .auth-buttons button {
-      padding: 10px 20px;
-      background-color: #6fa3f7;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      margin: 0 10px;
-      cursor: pointer;
-    }
-    .auth-buttons button:hover {
-      background-color: #5a8ce1;
-    }
-  </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyC5VJ1cb_ihQSlfzQm8vLa-0exU5-YTrc0",
@@ -108,24 +19,16 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
 
-    let user = null;
     let currentRole = "瑜榆";
     const historyCollection = collection(db, "sharedPlantingHistory");
 
     const stageDefs = [
-      { watering: 0, dusting: 0 },
       { watering: 1, dusting: 1 },
       { watering: 1, dusting: 1 },
       { watering: 5, dusting: 5 },
-      { watering: 9, dusting: 9 },
+      { watering: 9, dusting: 9 }
     ];
-
-    function getUserId() {
-      return user.displayName || user.email || user.uid;
-    }
 
     function getStageAndProgress(records) {
       records = [...records].sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
@@ -155,45 +58,12 @@
       return { stage };
     }
 
-    function updateStageView(userName, records) {
-      const stageDiv = document.getElementById(userName === '瑜榆' ? 'yuyu-stage' : 'coffee-stage');
-      const stageNames = ["尚未開始", "第一階段", "第二階段", "第三階段", "最終階段"];
-      const { stage, wProgress, dProgress } = getStageAndProgress(records);
-      let extra = '';
-      if (wProgress && dProgress) {
-        extra = `（澆水第 ${wProgress} 次，除塵第 ${dProgress} 次）`;
-      }
-      stageDiv.textContent = `🌟 當前階段：${stageNames[stage]}${extra}`;
-    }
-
     window.setRole = function(role) {
       currentRole = role;
       loadHistory();
     }
 
-    window.login = async function () {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        user = result.user;
-        loadHistory();
-      } catch (err) {
-        alert("登入失敗，請確認 Firebase Authentication 設定及允許的網域。");
-      }
-    };
-
-    window.logout = async function () {
-      await signOut(auth);
-    };
-
-    async function getUserRecords() {
-      const q = query(historyCollection, orderBy("timestamp", "asc"));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).filter(d => d.user === getUserId() && d.role === currentRole);
-    }
-
     window.addPlantingRecord = async function(action) {
-      if (!user) return alert("請先登入再操作。");
-
       const records = await getUserRecords();
       const { stage, wProgress, dProgress } = getStageAndProgress(records);
 
@@ -210,7 +80,6 @@
       try {
         await addDoc(historyCollection, {
           action,
-          user: getUserId(),
           role: currentRole,
           timestamp: serverTimestamp()
         });
@@ -220,81 +89,110 @@
       }
     };
 
-    window.deleteAllHistory = async function () {
-      if (!user) return alert("請先登入再操作。");
-
-      const records = await getUserRecords();
+    window.clearHistory = async function() {
       try {
-        for (const record of records) {
-          await deleteDoc(doc(db, "sharedPlantingHistory", record.id));
+        const querySnapshot = await getDocs(historyCollection);
+        for (const docItem of querySnapshot.docs) {
+          const data = docItem.data();
+          if (data.role === currentRole) {
+            await deleteDoc(doc(db, "sharedPlantingHistory", docItem.id));
+          }
         }
         loadHistory();
       } catch (err) {
-        alert("無法刪除紀錄，請確認權限。");
+        alert("⚠️ 無法清除紀錄，請檢查 Firestore 權限設定。");
       }
     };
 
-    window.loadHistory = async function () {
-      const history = await getUserRecords();
-      const historyList = document.getElementById(currentRole === '瑜榆' ? 'yuyu-history' : 'coffee-history');
-      historyList.innerHTML = "";
-      history.forEach(record => {
-        const li = document.createElement('li');
-        li.textContent = `${record.action} at ${new Date(record.timestamp.seconds * 1000).toLocaleString()}`;
-      });
-      updateStageView(currentRole, history);
+    async function getUserRecords() {
+      const q = query(historyCollection, orderBy("timestamp", "asc"));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data()).filter(d => d.role === currentRole);
+    }
+
+    window.loadHistory = async function() {
+      const yuyuList = document.getElementById("yuyu-history");
+      const coffeeList = document.getElementById("coffee-history");
+      yuyuList.innerHTML = "";
+      coffeeList.innerHTML = "";
+
+      const yuyuRecords = [];
+      const coffeeRecords = [];
+
+      try {
+        const q = query(historyCollection, orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const li = document.createElement("li");
+          li.textContent = `${data.role}: ${data.action} - ${data.timestamp?.toDate()?.toLocaleString() || '尚未同步'}`;
+          if (data.role === "瑜榆") {
+            yuyuList.appendChild(li);
+            yuyuRecords.push(data);
+          } else if (data.role === "咖啡棠") {
+            coffeeList.appendChild(li);
+            coffeeRecords.push(data);
+          }
+        });
+      } catch (err) {
+        alert("⚠️ 無法讀取紀錄，請檢查 Firestore 權限設定。");
+      }
     };
 
-    onAuthStateChanged(auth, (u) => {
-      if (u) {
-        user = u;
-        document.getElementById('login-btn').style.display = 'none';
-        document.getElementById('logout-btn').style.display = 'inline-block';
-        loadHistory();
-      } else {
-        user = null;
-        document.getElementById('login-btn').style.display = 'inline-block';
-        document.getElementById('logout-btn').style.display = 'none';
-      }
-    });
+    function updateUI() {
+      loadHistory();
+    }
   </script>
+  <style>
+    body { font-family: 'Arial', sans-serif; padding: 2em; background: #ffe4e1; color: #3b3b3b; }
+    h1 { font-size: 2em; text-align: center; color: #d2691e; text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
+    button { margin: 0.5em; padding: 1em 2em; font-size: 1em; background-color: #f5deb3; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
+    button:hover { background-color: #deb887; }
+    #role-selection { text-align: center; margin-top: 1em; }
+    #controls { text-align: center; }
+    #history-section { display: flex; justify-content: space-around; margin-top: 2em; }
+    .history-column { width: 45%; background: #fff; padding: 1em; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    .history-column h3 { text-align: center; }
+    .role-btn { display: inline-block; margin: 1em; cursor: pointer; transition: transform 0.3s ease; }
+    .role-btn img { width: 80px; height: 80px; border-radius: 50%; box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1); }
+    .role-btn:hover { transform: scale(1.1); }
+    .role-btn p { text-align: center; font-size: 1.2em; margin-top: 0.5em; }
+    ul { list-style-type: none; padding: 0; }
+    li { margin: 0.5em 0; }
+  </style>
 </head>
 <body>
+  <h1>💖 愛心種植計畫 💖</h1>
 
-  <header>
-    愛心種植
-  </header>
-
-  <div class="auth-buttons">
-    <button id="login-btn" onclick="login()">登入</button>
-    <button id="logout-btn" style="display:none;" onclick="logout()">登出</button>
-  </div>
-
-  <div id="container">
-    <div class="section" id="yuyu-section">
-      <h2>瑜榆植物</h2>
-      <div class="status" id="yuyu-stage">🌱 當前階段：尚未開始</div>
-      <div>
-        <button onclick="addPlantingRecord('下種子')">下種子</button>
-        <button onclick="addPlantingRecord('澆水')">澆水</button>
-        <button onclick="addPlantingRecord('除塵')">除塵</button>
+  <div style="text-align:center">
+    <div id="role-selection">
+      <div class="role-btn" onclick="setRole('瑜榆')">
+        <img src="path_to_yuyu_image" alt="瑜榆">
+        <p>瑜榆</p>
       </div>
-      <ul class="history-list" id="yuyu-history"></ul>
-      <button onclick="deleteAllHistory()">刪除所有紀錄</button>
+      <div class="role-btn" onclick="setRole('咖啡棠')">
+        <img src="path_to_coffee_image" alt="咖啡棠">
+        <p>咖啡棠</p>
+      </div>
     </div>
 
-    <div class="section" id="coffee-section">
-      <h2>咖啡棠植物</h2>
-      <div class="status" id="coffee-stage">🌱 當前階段：尚未開始</div>
-      <div>
-        <button onclick="addPlantingRecord('下種子')">下種子</button>
-        <button onclick="addPlantingRecord('澆水')">澆水</button>
-        <button onclick="addPlantingRecord('除塵')">除塵</button>
-      </div>
-      <ul class="history-list" id="coffee-history"></ul>
-      <button onclick="deleteAllHistory()">刪除所有紀錄</button>
+    <div id="controls">
+      <button onclick="addPlantingRecord('下種子')">🌱 下種子</button>
+      <button onclick="addPlantingRecord('澆水')">💧 澆水</button>
+      <button onclick="addPlantingRecord('除塵')">🧹 除塵</button>
+      <button onclick="clearHistory()">🗑️ 清除紀錄</button>
     </div>
   </div>
 
+  <div id="history-section">
+    <div class="history-column">
+      <h3>🧑‍🌾 瑜榆的紀錄</h3>
+      <ul id="yuyu-history"></ul>
+    </div>
+    <div class="history-column">
+      <h3>👩‍🌾 咖啡棠的紀錄</h3>
+      <ul id="coffee-history"></ul>
+    </div>
+  </div>
 </body>
 </html>
