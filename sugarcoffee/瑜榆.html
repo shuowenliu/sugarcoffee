@@ -79,13 +79,16 @@
     const stageLimits = [1, 1, 5, 9];
 
     function setupFarm(farmId, docId) {
-      const el = id => document.getElementById(farmId).querySelector(`.${el}`);
-      const plantSeed = el('plantSeed');
-      const water = el('water');
-      const dust = el('dust');
-      const clear = el('clear');
-      const status = el('status');
-      const logDiv = el('log');
+      function getEl(className) {
+        return document.getElementById(farmId).querySelector(`.${className}`);
+      }
+
+      const plantSeed = getEl('plantSeed');
+      const water = getEl('water');
+      const dust = getEl('dust');
+      const clear = getEl('clear');
+      const status = getEl('status');
+      const logDiv = getEl('log');
 
       let state = {
         seeded: false,
