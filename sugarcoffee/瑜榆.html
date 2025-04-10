@@ -80,7 +80,9 @@
 
     function setupFarm(farmId, docId) {
       function getEl(className) {
-        return document.getElementById(farmId).querySelector(`.${className}`);
+  const container = document.getElementById(farmId);
+  return container.querySelector(`.${className}`);
+}`);
       }
 
       const plantSeed = getEl('plantSeed');
