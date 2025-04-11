@@ -33,11 +33,10 @@
       border-collapse: collapse;
       margin-top: 10px;
     }
-    .log th, .log td {
-      border: 1px solid #f0a6b8;
-      padding: 6px 8px;
-      text-align: center;
-    }
+    $1
+  white-space: nowrap;
+  word-break: keep-all;
+  max-width: 1px;
     .status { color: #e18aaa; margin: 10px 0; }
     @media (max-width: 768px) {
       table.layout, table.layout td { display: block; width: 100%; }
@@ -117,7 +116,7 @@
         for (let stage = 0; stage < 4; stage++) {
           const limit = stageLimits[stage];
           htmlParts.push(`<h4>第 ${stage + 1} 階段</h4>`);
-          htmlParts.push('<table><thead><tr><th>次數</th><th>澆水時間</th><th>除塵時間</th></tr></thead><tbody>');
+          htmlParts.push('<table><thead><tr><th style="width: 60px;">次數</th><th>澆水時間</th><th>除塵時間</th></tr></thead><tbody>');
           for (let i = 0; i < limit; i++) {
   const w = state.log.find(e => e.stage === stage && e.action === '澆水' && e.count === i + 1);
   const d = state.log.find(e => e.stage === stage && e.action === '除塵' && e.count === i + 1);
