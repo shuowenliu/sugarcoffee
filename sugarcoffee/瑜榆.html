@@ -117,14 +117,15 @@
         for (let stage = 0; stage < 4; stage++) {
           const limit = stageLimits[stage];
           htmlParts.push(`<h4>第 ${stage + 1} 階段</h4>`);
-          htmlParts.push('<table><thead><tr><th>動作</th><th>次數</th><th>時間</th></tr></thead><tbody>');
+          htmlParts.push('<table><thead><tr><th>次數</th><th>澆水時間</th><th>除塵時間</th></tr></thead><tbody>');
           for (let i = 0; i < limit; i++) {
-            const w = state.log.find(e => e.stage === stage && e.action === '澆水' && e.count === i + 1);
-            const d = state.log.find(e => e.stage === stage && e.action === '除塵' && e.count === i + 1);
-            htmlParts.push(`<tr><td>澆水</td><td>第 ${i + 1} 次</td><td>${w ? w.time : '<span style="color:#aaa;font-style:italic">N/A</span>'}</td></tr>`);
-            htmlParts.push(`<tr><td>除塵</td><td>第 ${i + 1} 次</td><td>${d ? d.time : '<span style="color:#aaa;font-style:italic">N/A</span>'}</td></tr>`);
-          }
-          htmlParts.push('</tbody></table>');
+  const w = state.log.find(e => e.stage === stage && e.action === '澆水' && e.count === i + 1);
+  const d = state.log.find(e => e.stage === stage && e.action === '除塵' && e.count === i + 1);
+  const wTime = w ? w.time : '<span style="color:#aaa;font-style:italic">N/A</span>';
+  const dTime = d ? d.time : '<span style="color:#aaa;font-style:italic">N/A</span>';
+  htmlParts.push(`<tr><td>第 ${i + 1} 次</td><td>${wTime}</td><td>${dTime}</td></tr>`);
+}
+htmlParts.push('</tbody></table>');
         }
         logDiv.innerHTML = htmlParts.join('');
       }
