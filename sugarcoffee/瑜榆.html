@@ -131,7 +131,7 @@ htmlParts.push('</tbody></table>');
       }
 
       function logAction(action) {
-        const now = new Date().toLocaleString();
+        const now = new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
         state.log.push({
           action,
           stage: state.stage,
