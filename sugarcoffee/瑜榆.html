@@ -76,16 +76,12 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const db = firebase.firestore();
     const stageLimits = [1, 1, 5, 9];
 
     function setupFarm(farmId, docId) {
-  const container = document.getElementById(farmId);
-  function getEl(className) {
-    return container.querySelector(`.${className}`);
-  }`);
-}
-
+      const container = document.getElementById(farmId);
+      function getEl(className) {
+        return container.querySelector(`.${className}`);
       }
 
       const plantSeed = getEl('plantSeed');
@@ -122,8 +118,8 @@
           for (let i = 0; i < limit; i++) {
             const w = state.log.find(e => e.stage === stage && e.action === '澆水' && e.count === i + 1);
             const d = state.log.find(e => e.stage === stage && e.action === '除塵' && e.count === i + 1);
-            htmlParts.push(`<tr><td>澆水</td><td>第 ${i + 1} 次</td><td>${w ? w.time : 'N/A'}</td></tr>`);
-            htmlParts.push(`<tr><td>除塵</td><td>第 ${i + 1} 次</td><td>${d ? d.time : 'N/A'}</td></tr>`);
+            htmlParts.push(`<tr><td>澆水</td><td>第 ${i + 1} 次</td><td>${w ? w.time : '<span style="color:#aaa;font-style:italic">N/A</span>'}</td></tr>`);
+            htmlParts.push(`<tr><td>除塵</td><td>第 ${i + 1} 次</td><td>${d ? d.time : '<span style="color:#aaa;font-style:italic">N/A</span>'}</td></tr>`);
           }
           htmlParts.push('</tbody></table>');
         }
