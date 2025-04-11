@@ -69,117 +69,125 @@
   </table>
 
   <script>
-  function setupFarm(farmId, docId) {
-    const container = document.getElementById(farmId);
-    function getEl(className) {
-      return container.querySelector(`.${className}`);
-    }
-
-    const plantSeed = getEl('plantSeed');
-    const water = getEl('water');
-    const dust = getEl('dust');
-    const clear = getEl('clear');
-    const status = getEl('status');
-    const logDiv = getEl('log');
-
-    let state = {
-      seeded: false,
-      stage: 0,
-      progress: 0,
-      log: [],
-      nextAction: 'water'
+    const firebaseConfig = {
+      apiKey: "AIzaSyC5VJ1cb_ihQSlfzQm8vLa-0exU5-YTrc0",
+      authDomain: "coffeesugar-planting.firebaseapp.com",
+      projectId: "coffeesugar-planting"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const stageLimits = [1, 1, 5, 9];
 
-    const ref = db.collection('heart_planting').doc(docId);
-
-    function updateUI() {
-      plantSeed.disabled = state.seeded;
-      water.disabled = !(state.seeded && state.nextAction === 'water');
-      dust.disabled = !(state.seeded && state.nextAction === 'dust');
-
-      status.innerText = state.seeded
-        ? `目前為第 ${state.stage + 1} 階段，第 ${Math.floor(state.progress / 2) + 1} 次 ${state.nextAction === 'water' ? '澆水' : '除塵'}`
-        : '請先下種子';
-
-      const htmlParts = [];
-      for (let stage = 0; stage < 4; stage++) {
-        const limit = stageLimits[stage];
-        htmlParts.push(`<h4>第 ${stage + 1} 階段</h4>`);
-        htmlParts.push('<table><thead><tr><th>動作</th><th>次數</th><th>時間</th></tr></thead><tbody>');
-        for (let i = 0; i < limit; i++) {
-          const w = state.log.find(e => e.stage === stage && e.action === '澆水' && e.count === i + 1);
-          const d = state.log.find(e => e.stage === stage && e.action === '除塵' && e.count === i + 1);
-          htmlParts.push(`<tr><td>澆水</td><td>第 ${i + 1} 次</td><td>${w ? w.time : '<span style="color:#bbb">尚未完成</span>'}</td></tr>`);
-          htmlParts.push(`<tr><td>除塵</td><td>第 ${i + 1} 次</td><td>${d ? d.time : '<span style="color:#bbb">尚未完成</span>'}</td></tr>`);
-        }
-        htmlParts.push('</tbody></table>');
+    function setupFarm(farmId, docId) {
+      const container = document.getElementById(farmId);
+      function getEl(className) {
+        return container.querySelector(`.${className}`);
       }
-      logDiv.innerHTML = htmlParts.join('');
-    }
 
-    function logAction(action) {
-      const now = new Date().toLocaleString();
-      state.log.push({
-        action,
-        stage: state.stage,
-        count: Math.floor(state.progress / 2) + 1,
-        time: now
-      });
-    }
+      const plantSeed = getEl('plantSeed');
+      const water = getEl('water');
+      const dust = getEl('dust');
+      const clear = getEl('clear');
+      const status = getEl('status');
+      const logDiv = getEl('log');
 
-    async function saveState() {
-      await ref.set(state);
-    }
+      let state = {
+        seeded: false,
+        stage: 0,
+        progress: 0,
+        log: [],
+        nextAction: 'water'
+      };
 
-    plantSeed.onclick = async () => {
-      console.log('🌱 下種子按鈕被點擊');
-      if (state.seeded) return;
-      state = { seeded: true, stage: 0, progress: 0, log: [], nextAction: 'water' };
-      logAction('下種子');
-      await saveState(); updateUI();
-    };
-    water.onclick = async () => {
-      console.log('💧 澆水按鈕被點擊');
-      if (state.nextAction !== 'water') return;
-      logAction('澆水');
-      state.progress++; state.nextAction = 'dust';
-      await checkProgress();
-    };
-    dust.onclick = async () => {
-      console.log('🧼 除塵按鈕被點擊');
-      if (state.nextAction !== 'dust') return;
-      logAction('除塵');
-      state.progress++; state.nextAction = 'water';
-      await checkProgress();
-    };
-    async function checkProgress() {
-      if (state.progress >= stageLimits[state.stage] * 2) {
-        if (state.stage < stageLimits.length - 1) {
-          state.stage++; state.progress = 0;
-        } else {
-          state.nextAction = 'done';
+      const ref = db.collection('heart_planting').doc(docId);
+
+      function updateUI() {
+        plantSeed.disabled = state.seeded;
+        water.disabled = !(state.seeded && state.nextAction === 'water');
+        dust.disabled = !(state.seeded && state.nextAction === 'dust');
+
+        status.innerText = state.seeded
+          ? `目前為第 ${state.stage + 1} 階段，第 ${Math.floor(state.progress / 2) + 1} 次 ${state.nextAction === 'water' ? '澆水' : '除塵'}`
+          : '請先下種子';
+
+        const htmlParts = [];
+        for (let stage = 0; stage < 4; stage++) {
+          const limit = stageLimits[stage];
+          htmlParts.push(`<h4>第 ${stage + 1} 階段</h4>`);
+          htmlParts.push('<table><thead><tr><th>動作</th><th>次數</th><th>時間</th></tr></thead><tbody>');
+          for (let i = 0; i < limit; i++) {
+            const w = state.log.find(e => e.stage === stage && e.action === '澆水' && e.count === i + 1);
+            const d = state.log.find(e => e.stage === stage && e.action === '除塵' && e.count === i + 1);
+            htmlParts.push(`<tr><td>澆水</td><td>第 ${i + 1} 次</td><td>${w ? w.time : '<span style="color:#bbb">尚未完成</span>'}</td></tr>`);
+            htmlParts.push(`<tr><td>除塵</td><td>第 ${i + 1} 次</td><td>${d ? d.time : '<span style="color:#bbb">尚未完成</span>'}</td></tr>`);
+          }
+          htmlParts.push('</tbody></table>');
         }
+        logDiv.innerHTML = htmlParts.join('');
       }
-      await saveState(); updateUI();
+
+      function logAction(action) {
+        const now = new Date().toLocaleString();
+        state.log.push({
+          action,
+          stage: state.stage,
+          count: Math.floor(state.progress / 2) + 1,
+          time: now
+        });
+      }
+
+      async function saveState() {
+        await ref.set(state);
+      }
+
+      plantSeed.onclick = async () => {
+        console.log('🌱 下種子按鈕被點擊');
+        if (state.seeded) return;
+        state = { seeded: true, stage: 0, progress: 0, log: [], nextAction: 'water' };
+        logAction('下種子');
+        await saveState(); updateUI();
+      };
+      water.onclick = async () => {
+        console.log('💧 澆水按鈕被點擊');
+        if (state.nextAction !== 'water') return;
+        logAction('澆水');
+        state.progress++; state.nextAction = 'dust';
+        await checkProgress();
+      };
+      dust.onclick = async () => {
+        console.log('🧼 除塵按鈕被點擊');
+        if (state.nextAction !== 'dust') return;
+        logAction('除塵');
+        state.progress++; state.nextAction = 'water';
+        await checkProgress();
+      };
+      async function checkProgress() {
+        if (state.progress >= stageLimits[state.stage] * 2) {
+          if (state.stage < stageLimits.length - 1) {
+            state.stage++; state.progress = 0;
+          } else {
+            state.nextAction = 'done';
+          }
+        }
+        await saveState(); updateUI();
+      }
+
+      clear.onclick = async () => {
+        await ref.delete();
+        state = { seeded: false, stage: 0, progress: 0, log: [], nextAction: 'water' };
+        updateUI();
+      };
+
+      async function init() {
+        const doc = await ref.get();
+        if (doc.exists) state = doc.data();
+        updateUI();
+      }
+      init();
     }
 
-    clear.onclick = async () => {
-      await ref.delete();
-      state = { seeded: false, stage: 0, progress: 0, log: [], nextAction: 'water' };
-      updateUI();
-    };
-
-    async function init() {
-      const doc = await ref.get();
-      if (doc.exists) state = doc.data();
-      updateUI();
-    }
-    init();
-  }
-
-  setupFarm('farm-yuyu', 'record_yuyu');
-  setupFarm('farm-coffee', 'record_coffee');
-</script>
-
+    setupFarm('farm-yuyu', 'record_yuyu');
+    setupFarm('farm-coffee', 'record_coffee');
+  </script>
 </body>
 </html>
