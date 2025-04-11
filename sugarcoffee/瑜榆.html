@@ -83,6 +83,7 @@
   const container = document.getElementById(farmId);
   return container.querySelector(`.${className}`);
 }`);
+}`);
       }
 
       const plantSeed = getEl('plantSeed');
@@ -142,18 +143,21 @@
       }
 
       plantSeed.onclick = async () => {
+        console.log('🌱 下種子按鈕被點擊');
         if (state.seeded) return;
         state = { seeded: true, stage: 0, progress: 0, log: [], nextAction: 'water' };
         logAction('下種子');
         await saveState(); updateUI();
       };
       water.onclick = async () => {
+        console.log('💧 澆水按鈕被點擊');
         if (state.nextAction !== 'water') return;
         logAction('澆水');
         state.progress++; state.nextAction = 'dust';
         await checkProgress();
       };
       dust.onclick = async () => {
+        console.log('🧼 除塵按鈕被點擊');
         if (state.nextAction !== 'dust') return;
         logAction('除塵');
         state.progress++; state.nextAction = 'water';
