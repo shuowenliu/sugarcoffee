@@ -76,12 +76,16 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const db = firebase.firestore();
     const stageLimits = [1, 1, 5, 9];
 
     function setupFarm(farmId, docId) {
-      const container = document.getElementById(farmId);
-      function getEl(className) {
-        return container.querySelector(`.${className}`);
+  const container = document.getElementById(farmId);
+  function getEl(className) {
+    return container.querySelector(`.${className}`);
+  }`);
+}
+
       }
 
       const plantSeed = getEl('plantSeed');
