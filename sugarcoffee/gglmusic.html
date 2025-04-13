@@ -1,156 +1,184 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歌曲管理系統</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: linear-gradient(135deg, #121212, #1e1e1e);
-            color: #fff;
-            text-align: center;
-        }
-        .container {
-            max-width: 700px;
-            margin: auto;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.2);
-        }
-        .input-group, .filter-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-        input, select, button {
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-        button {
-            background: #444;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #666;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            margin: 6px 0;
-            border-radius: 12px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-        }
-        .bpm-group {
-            display: grid;
-            grid-template-columns: 1fr repeat(4, 1fr) 1fr;
-            gap: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>歌曲管理系統</title>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      padding: 20px;
+      background: linear-gradient(to right, #fdeff9, #f8f0ff);
+      color: #4a4a4a;
+    }
+    h1 {
+      color: #c06c84;
+    }
+    label, select, input, button {
+      margin: 5px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #f7b2c4;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #ec729c;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: 1px solid #f3d2dc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #ffe3ec;
+    }
+    .bpm-buttons button {
+      margin: 2px;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
-<body onload="loadGglData()">
-    <div class="container">
-        <h2>🎵 GGL 歌曲管理系統 🎶</h2>
-        <div class="input-group">
-            <input type="text" id="gglSongName" placeholder="輸入曲名...">
-            <input type="number" id="gglBpm" placeholder="輸入 BPM...">
-            <select id="gglLanguage">
-                <option value="">選擇語言</option>
-                <option value="國語">國語</option>
-                <option value="台語">台語</option>
-                <option value="粵語">粵語</option>
-                <option value="英文">英文</option>
-                <option value="韓國">韓國</option>
-                <option value="越南">越南</option>
-                <option value="日語">日語</option>
-                <option value="其他">其他</option>
-            </select>
-            <select id="gglCategory">
-                <option value="">選擇類型</option>
-                <option value="抒情">抒情</option>
-                <option value="悲傷">悲傷</option>
-                <option value="DJ">DJ</option>
-                <option value="嗨歌">嗨歌</option>
-                <option value="怪歌">怪歌</option>
-                <option value="甜蜜">甜蜜</option>
-            </select>
-        </div>
-        <br>
-        <button onclick="saveGglData()">💾 儲存</button>
-        <button onclick="loadGglData()">📜 顯示所有歌曲</button>
-        <br><br>
-        <div class="bpm-group">
-            <button onclick="searchGglByFilters(0, 89)">90以下</button>
-            <button onclick="searchGglByFilters(90, 99)">90-99</button>
-            <button onclick="searchGglByFilters(100, 109)">100-109</button>
-            <button onclick="searchGglByFilters(110, 119)">110-119</button>
-            <button onclick="searchGglByFilters(120, 129)">120-129</button>
-            <button onclick="searchGglByFilters(130, 139)">130-139</button>
-            <button onclick="searchGglByFilters(140, 149)">140-149</button>
-            <button onclick="searchGglByFilters(150, 159)">150-159</button>
-            <button onclick="searchGglByFilters(160, 169)">160-169</button>
-            <button onclick="searchGglByFilters(170, 179)">170-179</button>
-            <button onclick="searchGglByFilters(180, 189)">180-189</button>
-            <button onclick="searchGglByFilters(190, Infinity)">190以上</button>
-        </div>
-        <ul id="gglDataList"></ul>
-    </div>
-    <script>
-        function saveGglData() {
-            let songName = document.getElementById("gglSongName").value;
-            let bpm = document.getElementById("gglBpm").value;
-            let language = document.getElementById("gglLanguage").value;
-            let category = document.getElementById("gglCategory").value;
+<body>
+  <h1>🎵 歌曲資料庫管理</h1>
 
-            if (!songName || !bpm || !language || !category) {
-                alert("請填寫所有欄位");
-                return;
-            }
+  <div>
+    <input type="text" id="songName" placeholder="輸入歌名">
+    <input type="number" id="bpm" placeholder="BPM">
+    <select id="lang">
+      <option>國語</option><option>台語</option><option>英文</option>
+      <option>韓語</option><option>越南</option><option>粵語</option><option>其他</option>
+    </select>
+    <select id="genre">
+      <option>情歌</option><option>悲歌</option><option>DJ版</option>
+      <option>輕快</option><option>RAP</option>
+    </select>
+    <button onclick="addSong()">➕ 儲存</button>
+  </div>
 
-            let songs = JSON.parse(localStorage.getItem("gglSongs")) || [];
-            let exists = songs.some(song => song.name === songName && song.bpm === bpm);
-            if (exists) {
-                alert("歌曲已經存在");
-                return;
-            }
+  <div>
+    <h3>搜尋歌曲</h3>
+    <div class="bpm-buttons" id="bpmFilters"></div>
+    <select id="filterLang">
+      <option value="">不限語言</option>
+      <option>國語</option><option>台語</option><option>英文</option>
+      <option>韓語</option><option>越南</option><option>粵語</option><option>其他</option>
+    </select>
+    <select id="filterGenre">
+      <option value="">不限種類</option>
+      <option>情歌</option><option>悲歌</option><option>DJ版</option>
+      <option>輕快</option><option>RAP</option>
+    </select>
+    <button onclick="searchSongs()">🔍 搜尋</button>
+  </div>
 
-            songs.push({ name: songName, bpm: bpm, language: language, category: category });
-            localStorage.setItem("gglSongs", JSON.stringify(songs));
-            loadGglData();
-        }
+  <table id="resultTable">
+    <thead><tr><th>歌名</th><th>BPM</th><th>語言</th><th>種類</th><th>操作</th></tr></thead>
+    <tbody></tbody>
+  </table>
 
-        function loadGglData() {
-            let songs = JSON.parse(localStorage.getItem("gglSongs")) || [];
-            let dataList = document.getElementById("gglDataList");
-            dataList.innerHTML = "";
-            songs.forEach(song => {
-                let li = document.createElement("li");
-                li.innerHTML = `${song.name} (${song.bpm} BPM) - ${song.language} | ${song.category} 
-                    <button onclick="deleteGglSong('${song.name}', '${song.bpm}')">🗑️</button>`;
-                dataList.appendChild(li);
-            });
-        }
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC5VJ1cb_ihQSlfzQm8vLa-0exU5-YTrc0",
+      authDomain: "coffeesugar-planting.firebaseapp.com",
+      projectId: "coffeesugar-planting"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const songRef = db.collection('songs');
 
-        function deleteGglSong(name, bpm) {
-            let songs = JSON.parse(localStorage.getItem("gglSongs")) || [];
-            songs = songs.filter(song => song.name !== name || song.bpm !== bpm);
-            localStorage.setItem("gglSongs", JSON.stringify(songs));
-            loadGglData();
-        }
-    </script>
+    function bpmLabel(min, max) {
+      return max === 999 ? `${min}+` : `${min}~${max}`;
+    }
+
+    window.onload = () => {
+      const bpmBtns = document.getElementById('bpmFilters');
+      for (let i = 60; i <= 200; i += 10) {
+        const btn = document.createElement('button');
+        btn.innerText = bpmLabel(i, i + 9);
+        btn.onclick = () => searchSongs(i, i + 9);
+        bpmBtns.appendChild(btn);
+      }
+      const fastBtn = document.createElement('button');
+      fastBtn.innerText = '200以上';
+      fastBtn.onclick = () => searchSongs(200, 999);
+      bpmBtns.appendChild(fastBtn);
+
+      const slowBtn = document.createElement('button');
+      slowBtn.innerText = '90以下';
+      slowBtn.onclick = () => searchSongs(0, 90);
+      bpmBtns.prepend(slowBtn);
+    }
+
+    async function addSong() {
+      const name = document.getElementById('songName').value.trim();
+      const bpm = parseInt(document.getElementById('bpm').value);
+      const lang = document.getElementById('lang').value;
+      const genre = document.getElementById('genre').value;
+
+      if (!name || !bpm) return alert('請輸入歌名與 BPM');
+
+      const exists = await songRef.where('name', '==', name).where('bpm', '==', bpm).get();
+      if (!exists.empty) return alert('資料庫已有此歌曲！');
+
+      await songRef.add({ name, bpm, lang, genre });
+      alert('✅ 歌曲已新增');
+      searchSongs();
+    }
+
+    async function searchSongs(minBpm = 0, maxBpm = 999) {
+      const lang = document.getElementById('filterLang').value;
+      const genre = document.getElementById('filterGenre').value;
+      let query = songRef.where('bpm', ">=", minBpm).where('bpm', "<=", maxBpm);
+      if (lang) query = query.where('lang', '==', lang);
+      if (genre) query = query.where('genre', '==', genre);
+
+      const snapshot = await query.get();
+      const results = [];
+      snapshot.forEach(doc => results.push({ id: doc.id, ...doc.data() }));
+      results.sort((a, b) => a.bpm - b.bpm);
+
+      const tbody = document.querySelector('#resultTable tbody');
+      tbody.innerHTML = '';
+      results.forEach(data => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${data.name}</td>
+          <td>${data.bpm}</td>
+          <td>${data.lang}</td>
+          <td>${data.genre}</td>
+          <td>
+            <button onclick="copyText('${data.name}')">複製</button>
+            <button onclick="deleteSong('${data.id}')">刪除</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => alert('已複製歌名'));
+    }
+
+    async function deleteSong(id) {
+      if (confirm('確定要刪除這首歌嗎？')) {
+        await songRef.doc(id).delete();
+        searchSongs();
+      }
+    }
+  </script>
 </body>
 </html>
