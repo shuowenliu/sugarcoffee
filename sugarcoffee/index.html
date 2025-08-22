@@ -1,182 +1,183 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>歌曲管理系統 — 雙向同步 (左右版)</title>
+  <meta charset="UTF-8">
+  <title>歌曲管理系統</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#121212; color:#eee; margin:0; padding:20px; }
-    h1 { color:#90caf9; }
-    .container { display:flex; gap:20px; }
-    .left { flex:2; }
-    .right { flex:1; background:#1e1e1e; padding:15px; border-radius:8px; }
-    .controls { margin-bottom:10px; display:flex; gap:10px; flex-wrap:wrap; }
-    input, select { padding:6px; border-radius:4px; border:1px solid #555; background:#1e1e1e; color:#fff; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { padding:8px; border-bottom:1px solid #333; text-align:left; }
-    th { cursor:pointer; background:#222; }
-    tr:hover { background:#333; }
-    .pagination { margin-top:10px; display:flex; gap:10px; align-items:center; }
-    button { padding:6px 10px; border:none; border-radius:4px; cursor:pointer; }
-    button.primary { background:#42a5f5; color:#fff; }
-    button.danger { background:#ef5350; color:#fff; }
+    body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+    .left { flex: 2; padding: 20px; overflow: auto; border-right: 1px solid #ccc; }
+    .right { flex: 1; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { cursor: pointer; background: #f5f5f5; }
+    .pagination { margin-top: 10px; text-align: center; }
+    button { margin: 2px; padding: 6px 12px; }
+    input, select { width: 100%; padding: 6px; margin: 4px 0; }
   </style>
 </head>
 <body>
-  <h1>🎵 歌曲管理系統 (Google Sheet 雙向同步)</h1>
-
-  <div class="container">
-    <!-- 左邊：歌曲清單 -->
-    <div class="left">
-      <div class="controls">
-        <input type="text" id="search" placeholder="搜尋歌名...">
-        <select id="filterLang">
-          <option value="">語言</option>
-          <option>中文</option>
-          <option>英文</option>
-          <option>韓文</option>
-          <option>日文</option>
-          <option>越南</option>
-          <option>粵語</option>
-          <option>台語</option>
-        </select>
-        <select id="filterStyle">
-          <option value="">型態</option>
-          <option>情歌</option>
-          <option>悲傷</option>
-          <option>嗨歌</option>
-          <option>RAP</option>
-          <option>抒情</option>
-        </select>
-        <input type="number" id="minBpm" placeholder="BPM最小" style="width:100px">
-        <input type="number" id="maxBpm" placeholder="BPM最大" style="width:100px">
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th data-key="name">歌名</th>
-            <th data-key="bpm">速度(BPM)</th>
-            <th data-key="lang">語言</th>
-            <th data-key="style">型態</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="songTable"></tbody>
-      </table>
-
-      <div class="pagination">
-        <button id="prevPage">⬅ 上一頁</button>
-        <span id="pageInfo"></span>
-        <button id="nextPage">下一頁 ➡</button>
-      </div>
-    </div>
-
-    <!-- 右邊：編輯歌曲 -->
-    <div class="right">
-      <h2>✏️ 編輯歌曲</h2>
-      <input type="hidden" id="songId">
-      <div class="controls" style="flex-direction:column; align-items:stretch;">
-        <input type="text" id="songName" placeholder="歌名">
-        <input type="number" id="songBpm" placeholder="速度(BPM)">
-        <select id="songLang">
-          <option value="">語言</option>
-          <option>中文</option>
-          <option>英文</option>
-          <option>韓文</option>
-          <option>日文</option>
-          <option>越南</option>
-          <option>粵語</option>
-          <option>台語</option>
-        </select>
-        <select id="songStyle">
-          <option value="">型態</option>
-          <option>情歌</option>
-          <option>悲傷</option>
-          <option>嗨歌</option>
-          <option>RAP</option>
-          <option>抒情</option>
-        </select>
-      </div>
-      <div class="controls">
-        <button class="primary" onclick="saveSong()">💾 儲存</button>
-        <button onclick="clearForm()">🧹 清除欄位</button>
-      </div>
-    </div>
+  <!-- 左邊：歌曲清單 -->
+  <div class="left">
+    <h2>🎵 歌曲清單</h2>
+    <input type="text" id="search" placeholder="搜尋..." oninput="render()" />
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('name')">歌名</th>
+          <th onclick="sortBy('bpm')">速度</th>
+          <th onclick="sortBy('lang')">語言</th>
+          <th onclick="sortBy('style')">型態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="songTable"></tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
   </div>
 
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzF2TiPXvC5Wc9Qka2mQ1H3SSGzxCV_LDFBK6YXN-GdxMKqFrpEWrC1kvhPK72JnZd1Jg/exec";
+  <!-- 右邊：新增 / 編輯 -->
+  <div class="right">
+    <h2>✍️ 新增 / 編輯歌曲</h2>
+    <input type="hidden" id="songId">
+    <p><input id="songName" placeholder="歌名"></p>
+    <p><input id="songBpm" type="number" placeholder="BPM"></p>
+    <p>
+      <select id="songLang">
+        <option>中文</option>
+        <option>英文</option>
+        <option>日文</option>
+        <option>韓文</option>
+        <option>越南</option>
+        <option>粵語</option>
+        <option>台語</option>
+      </select>
+    </p>
+    <p>
+      <select id="songStyle">
+        <option>情歌</option>
+        <option>悲傷</option>
+        <option>嗨歌</option>
+        <option>RAP</option>
+        <option>抒情</option>
+      </select>
+    </p>
+    <button onclick="saveSong()">💾 儲存</button>
+    <button onclick="clearForm()">🧹 清除</button>
+  </div>
 
-let songs = [];
-let currentPage = 1;
-const pageSize = 10;
-let sortKey = '';
-let sortAsc = true;
+  <script>
+    let songs = [];
+    let currentPage = 1;
+    const pageSize = 10;
+    let sortKey = '';
+    let sortAsc = true;
 
-async function loadSongs() {
-  try {
-    const res = await fetch(API_URL);
-    const text = await res.text(); // 先拿原始字串，避免 JSON 失敗
-    console.log("📥 loadSongs() response:", text);
-    songs = JSON.parse(text);
-    render();
-  } catch (err) {
-    console.error("❌ loadSongs error:", err);
-    alert("讀取歌曲清單失敗，請檢查 API URL 或權限。");
-  }
-}
-
-async function saveSong() {
-  const id = document.getElementById("songId").value;
-  const song = {
-    id: id,
-    name: document.getElementById("songName").value,
-    bpm: parseInt(document.getElementById("songBpm").value) || 0,
-    lang: document.getElementById("songLang").value,
-    style: document.getElementById("songStyle").value
-  };
-  if (!song.name) return alert("請輸入歌名");
-
-  try {
-    const res = await fetch(API_URL, { 
-      method: id ? "PUT" : "POST",
-      body: JSON.stringify(song),
-      headers: { "Content-Type": "application/json" }
-    });
-    const text = await res.text();
-    console.log("📤 saveSong() response:", text);
-    const result = JSON.parse(text);
-
-    if (result.status === "ok") {
-      clearForm();
-      loadSongs();
-    } else {
-      alert("儲存失敗：" + text);
+    function loadSongs() {
+      google.script.run.withSuccessHandler(data => {
+        songs = data;
+        render();
+      }).getSongs();
     }
-  } catch (err) {
-    console.error("❌ saveSong error:", err);
-    alert("儲存歌曲失敗，請檢查 API 是否正常。");
-  }
-}
 
-async function deleteSong(id) {
-  if (!confirm("確定要刪除嗎？")) return;
-  try {
-    const res = await fetch(API_URL + "?id=" + id, { method:"DELETE" });
-    const text = await res.text();
-    console.log("🗑 deleteSong() response:", text);
-    const result = JSON.parse(text);
-    if (result.status === "ok") {
-      loadSongs();
-    } else {
-      alert("刪除失敗：" + text);
+    function saveSong() {
+      const song = {
+        id: document.getElementById("songId").value,
+        name: document.getElementById("songName").value,
+        bpm: parseInt(document.getElementById("songBpm").value) || 0,
+        lang: document.getElementById("songLang").value,
+        style: document.getElementById("songStyle").value
+      };
+      if (!song.name) return alert("請輸入歌名");
+
+      google.script.run.withSuccessHandler(result => {
+        if (result.status === "ok") {
+          clearForm();
+          loadSongs();
+        }
+      }).saveSong(song);
     }
-  } catch (err) {
-    console.error("❌ deleteSong error:", err);
-    alert("刪除歌曲失敗，請檢查 API 是否正常。");
-  }
-}
-</script>
+
+    function editSong(id) {
+      const song = songs.find(s => s.id === id);
+      if (!song) return;
+      document.getElementById("songId").value = song.id;
+      document.getElementById("songName").value = song.name;
+      document.getElementById("songBpm").value = song.bpm;
+      document.getElementById("songLang").value = song.lang;
+      document.getElementById("songStyle").value = song.style;
+    }
+
+    function deleteSong(id) {
+      if (!confirm("確定要刪除嗎？")) return;
+      google.script.run.withSuccessHandler(result => {
+        if (result.status === "ok") loadSongs();
+      }).deleteSong(id);
+    }
+
+    function clearForm() {
+      document.getElementById("songId").value = "";
+      document.getElementById("songName").value = "";
+      document.getElementById("songBpm").value = "";
+      document.getElementById("songLang").value = "中文";
+      document.getElementById("songStyle").value = "情歌";
+    }
+
+    function render() {
+      const search = document.getElementById("search").value.toLowerCase();
+      let filtered = songs.filter(s =>
+        s.name.toLowerCase().includes(search) ||
+        s.lang.toLowerCase().includes(search) ||
+        s.style.toLowerCase().includes(search)
+      );
+
+      if (sortKey) {
+        filtered.sort((a, b) => {
+          if (a[sortKey] < b[sortKey]) return sortAsc ? -1 : 1;
+          if (a[sortKey] > b[sortKey]) return sortAsc ? 1 : -1;
+          return 0;
+        });
+      }
+
+      const totalPages = Math.ceil(filtered.length / pageSize);
+      if (currentPage > totalPages) currentPage = totalPages || 1;
+      const start = (currentPage - 1) * pageSize;
+      const pageData = filtered.slice(start, start + pageSize);
+
+      const tbody = document.getElementById("songTable");
+      tbody.innerHTML = "";
+      pageData.forEach(s => {
+        const row = `<tr>
+          <td>${s.name}</td>
+          <td>${s.bpm}</td>
+          <td>${s.lang}</td>
+          <td>${s.style}</td>
+          <td>
+            <button onclick="editSong('${s.id}')">✏️ 編輯</button>
+            <button onclick="deleteSong('${s.id}')">🗑 刪除</button>
+          </td>
+        </tr>`;
+        tbody.insertAdjacentHTML("beforeend", row);
+      });
+
+      const pagination = document.getElementById("pagination");
+      pagination.innerHTML = "";
+      for (let i = 1; i <= totalPages; i++) {
+        pagination.innerHTML += `<button onclick="gotoPage(${i})" ${i === currentPage ? "disabled" : ""}>${i}</button>`;
+      }
+    }
+
+    function sortBy(key) {
+      if (sortKey === key) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = true; }
+      render();
+    }
+
+    function gotoPage(page) {
+      currentPage = page;
+      render();
+    }
+
+    window.onload = loadSongs;
+  </script>
 </body>
 </html>
