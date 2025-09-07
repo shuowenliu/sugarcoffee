@@ -224,7 +224,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function loadSongs() {
-      const { data, error } = await supabase.from(TABLE_NAME).select('*');
+      const { data, error } = await supabaseClient.from(TABLE_NAME).select('*');
       if (error) {
         console.error('載入歌曲失敗:', error);
         alert('載入歌曲失敗，請檢查 Supabase 設定！');
@@ -258,16 +258,16 @@
 
         if (songId) {
             // 編輯歌曲
-            const { data: existingSongs } = await supabase.from(TABLE_NAME).select('id').eq('name', songName);
+            const { data: existingSongs } = await supabaseClient.from(TABLE_NAME).select('id').eq('name', songName);
             
             if (existingSongs.length > 0 && existingSongs[0].id !== songId) {
                 alert("這首歌名已經存在了，請更換！");
                 return;
             }
-            result = await supabase.from(TABLE_NAME).update(newSong).eq('id', songId);
+            result = await supabaseClient.from(TABLE_NAME).update(newSong).eq('id', songId);
         } else {
             // 新增歌曲
-            const { data: existingSongs } = await supabase.from(TABLE_NAME).select('id').eq('name', songName);
+            const { data: existingSongs } = await supabaseClient.from(TABLE_NAME).select('id').eq('name', songName);
 
             if (existingSongs.length > 0) {
                 alert("這首歌已經存在了，請勿重複輸入！");
@@ -313,7 +313,7 @@
 
           importStatus.textContent = `找到 ${dataToInsert.length} 筆資料，開始匯入...`;
           for (const [index, row] of dataToInsert.entries()) {
-            const { error } = await supabase.from(TABLE_NAME).insert([row]);
+            const { error } = await supabaseClient.from(TABLE_NAME).insert([row]);
             if (error) {
               importStatus.textContent = `匯入失敗於第 ${index + 1} 筆：${error.message}`;
               console.error('匯入錯誤:', error);
@@ -342,7 +342,7 @@
 
     async function deleteSong(id) {
       if (!confirm("確定要刪除嗎？")) return;
-      const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
+      const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', id);
       if (error) alert('刪除失敗：' + error.message);
       else loadSongs();
     }
@@ -447,6 +447,7 @@
 </body>
 
 </html>
+
 
 
 
