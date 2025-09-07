@@ -273,7 +273,7 @@
                 alert("這首歌已經存在了，請勿重複輸入！");
                 return;
             }
-            result = await supabase.from(TABLE_NAME).insert(newSong);
+            result = await supabaseClient.from(TABLE_NAME).insert(newSong);
         }
 
         if (result.error) {
@@ -447,6 +447,7 @@
 </body>
 
 </html>
+
 
 
 
