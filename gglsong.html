@@ -221,8 +221,7 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjdmt3Z2x6bHRlYnZhanZ5YWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwMzUwMjcsImV4cCI6MjA3MTYxMTAyN30.K1teLYiXQDquCcFKXX3ugdNfJCWqnik4XqQVQykr-go';
     const TABLE_NAME = 'ranked_songs'; // ⭐ 新表格名稱
 
-    const { createClient } = supabase;
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function loadSongs() {
       const { data, error } = await supabase.from(TABLE_NAME).select('*');
@@ -448,6 +447,7 @@
 </body>
 
 </html>
+
 
 
 
