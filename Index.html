@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>🎵 歌曲管理系統</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      text-align: center;
+    }
+    .container {
+      padding: 50px;
+      background: #222;
+      border-radius: 12px;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
+      border: 1px solid #333;
+    }
+    h1 {
+      color: #ffcc00;
+      font-size: 2.8em;
+      margin-bottom: 25px;
+      text-shadow: 0 0 10px rgba(255, 204, 0, 0.4);
+    }
+    .btn-group {
+      display: flex;
+      gap: 30px;
+      margin-top: 30px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 18px 36px;
+      font-size: 1.3em;
+      font-weight: 700;
+      color: #000;
+      background: linear-gradient(145deg, #ffd700, #ffcc00);
+      border: none;
+      border-radius: 10px;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 
+        0 4px 15px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+      transform: translateY(0);
+    }
+    .btn:hover {
+      background: linear-gradient(145deg, #ffe066, #ffdd33);
+      box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      transform: translateY(-2px);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 選擇歌曲管理系統</h1>
+    <div class="btn-group">
+      <a href="gglsong.html" class="btn">GGL Song</a>
+      <a href="tlsong.html" class="btn">TL Song</a>
+    </div>
+  </div>
+</body>
+</html>
