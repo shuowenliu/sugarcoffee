@@ -330,7 +330,7 @@
     }
 
     function editSong(id) {
-      const song = songs.find(s => s.id === id);
+      const song = songs.find(s => s.id === parseInt(id));
       if (!song) return;
       document.getElementById("songId").value = song.id;
       document.getElementById("songName").value = song.name;
@@ -447,6 +447,7 @@
 </body>
 
 </html>
+
 
 
 
