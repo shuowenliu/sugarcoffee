@@ -384,6 +384,17 @@ async function saveSong() {
         pagination.innerHTML += `<button onclick="gotoPage(${i})" ${i === currentPage ? "disabled" : ""}>${i}</button>`;
       }
     }
+    
+      function editSong(id) {
+    const song = songs.find(s => s.id == id);
+    if (!song) return;
+
+    document.getElementById("songId").value = song.id;
+    document.getElementById("songName").value = song.name || "";
+    document.getElementById("songBpm").value = song.bpm || "";
+    document.getElementById("songLang").value = song.lang || "中文";
+    document.getElementById("songStyle").value = song.style || "情歌";
+  }
 
     function sortBy(key) {
       if (sortKey === key) sortAsc = !sortAsc;
@@ -409,6 +420,7 @@ async function saveSong() {
   </script>
 </body>
 </html>
+
 
 
 
